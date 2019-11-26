@@ -1,0 +1,6 @@
+allennlp
+gitpython
+ipython
+jsonlines
+pytest
+xmltodict
