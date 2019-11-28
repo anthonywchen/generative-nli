@@ -1,2 +1,4 @@
 apex/
 generative-nli-env/
+data/*/*
+raw_data/
