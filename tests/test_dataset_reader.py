@@ -14,8 +14,8 @@ class Tests(AllenNlpTestCase):
 	def test_dataset_reader(self):
 		random.seed(0)
 
-		def check_tokenizer_dataset(tokenizer_model, tokenizer_name, file):
-			reader = NLIDatasetReader(1, 1, tokenizer_model, tokenizer_name, lazy=True)
+		def check_tokenizer_dataset(tokenizer, file):
+			reader = NLIDatasetReader(1, 1, tokenizer, lazy=True)
 			for i, instance in enumerate(reader.read(file)):
 				if i > 100:
 					break
@@ -34,20 +34,20 @@ class Tests(AllenNlpTestCase):
 				assert reader._label_dict[instance['metadata'].metadata['label']] == instance['label'].array
 
 		# SNLI
-		check_tokenizer_dataset('bert', 'bert-base-uncased', 'data/snli/train.jsonl')
-		check_tokenizer_dataset('roberta', 'roberta-base', 'data/snli/train.jsonl')
-		check_tokenizer_dataset('bert', 'bert-large-uncased', 'data/snli/train.jsonl')
-		check_tokenizer_dataset('roberta', 'roberta-large', 'data/snli/train.jsonl')
+		check_tokenizer_dataset('bert-base-uncased', 'data/snli/train.jsonl')
+		check_tokenizer_dataset('roberta-base', 'data/snli/train.jsonl')
+		check_tokenizer_dataset('bert-large-uncased', 'data/snli/train.jsonl')
+		check_tokenizer_dataset('roberta-large', 'data/snli/train.jsonl')
 
 		# MNLI
-		check_tokenizer_dataset('bert', 'bert-base-uncased', 'data/mnli/train.jsonl')
-		check_tokenizer_dataset('roberta', 'roberta-base', 'data/mnli/train.jsonl')
-		check_tokenizer_dataset('bert', 'bert-large-uncased', 'data/mnli/train.jsonl')
-		check_tokenizer_dataset('roberta', 'roberta-large', 'data/mnli/train.jsonl')
+		check_tokenizer_dataset('bert-base-uncased', 'data/mnli/train.jsonl')
+		check_tokenizer_dataset('roberta-base', 'data/mnli/train.jsonl')
+		check_tokenizer_dataset('bert-large-uncased', 'data/mnli/train.jsonl')
+		check_tokenizer_dataset('roberta-large', 'data/mnli/train.jsonl')
 
 		# ANLI
-		check_tokenizer_dataset('bert', 'bert-base-uncased', 'data/anli/test.jsonl')
-		check_tokenizer_dataset('roberta', 'roberta-base', 'data/anli/test.jsonl')
-		check_tokenizer_dataset('bert', 'bert-large-uncased', 'data/anli/test.jsonl')
-		check_tokenizer_dataset('roberta', 'roberta-large', 'data/anli/test.jsonl')
+		check_tokenizer_dataset('bert-base-uncased', 'data/anli/test.jsonl')
+		check_tokenizer_dataset('roberta-base', 'data/anli/test.jsonl')
+		check_tokenizer_dataset('bert-large-uncased', 'data/anli/test.jsonl')
+		check_tokenizer_dataset('roberta-large', 'data/anli/test.jsonl')
 		

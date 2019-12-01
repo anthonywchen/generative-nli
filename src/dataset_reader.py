@@ -18,21 +18,20 @@ class NLIDatasetReader(DatasetReader):
 	def __init__(self,
 				 batch_size,
 				 num_epochs,
-				 tokenizer_model,
-				 tokenizer_name,
+				 tokenizer,
 				 lazy=False) -> None:
 		super().__init__(lazy)
 		self._batch_size = batch_size
 		self._num_epochs = num_epochs
+		self._label_dict = {'entailment': 0, 'neutral': 1, 'contradiction': 2}
 
-		if tokenizer_model.lower() == 'roberta':
-			self._tokenizer = RobertaTokenizer.from_pretrained(tokenizer_name)
-		elif tokenizer_model.lower() == 'bert':
-			self._tokenizer = BertTokenizer.from_pretrained(tokenizer_name)
+		tokenizer_class = tokenizer.split('-')[0].lower()
+		if tokenizer_class == 'roberta':
+			self._tokenizer = RobertaTokenizer.from_pretrained(tokenizer)
+		elif tokenizer_class == 'bert':
+			self._tokenizer = BertTokenizer.from_pretrained(tokenizer)
 		else:
 			raise ValueError('tokenizer_model must either be roberta or bert')
-
-		self._label_dict = {'entailment': 0, 'neutral': 1, 'contradiction': 2}
 
 	@overrides
 	def _read(self, file_path: str):
