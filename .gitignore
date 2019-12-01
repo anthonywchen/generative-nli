@@ -1,4 +1,11 @@
+__pycache__/
 apex/
 generative-nli-env/
 data/*/*
+notebooks/
 raw_data/
+*.bin
+*.log
+*.swp
+*.tar.gz
+*.th
