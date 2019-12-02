@@ -1,36 +1,37 @@
 from allennlp.common.testing import AllenNlpTestCase
 from jsonlines import Reader
-from pytorch_transformers import BertTokenizer, RobertaTokenizer
+import logging
 import random
 import tqdm as tqdm 
 
-from src.dataset_reader import NLIDatasetReader
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+from src.bert_dataset_reader import BertNLIDatasetReader
+
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
 
 class Tests(AllenNlpTestCase):
 	##########################################
 	### Test dataset reader functions in `src/dataset_reader.py`
 	##########################################
-	def test_dataset_reader(self):
+	def test_bert_dataset_reader(self):
 		random.seed(0)
 
 		def check_tokenizer_dataset(tokenizer, file):
-			reader = NLIDatasetReader(1, 1, tokenizer, lazy=True)
+			reader = BertNLIDatasetReader(tokenizer, lazy=True)
 			for i, instance in enumerate(reader.read(file)):
-				if i > 100:
+				if i > 100:	
 					break
 
-				premise = instance['metadata'].metadata['premise']
-				hypothesis = instance['metadata'].metadata['hypothesis']
+				input_ids = instance['input_ids'].array
+				token_type_ids = instance['token_type_ids'].array
 				premise_tokens = instance['metadata'].metadata['premise_tokens']
-				hypothesis_tokens = instance['metadata'].metadata['hypothesis_tokens']
-				premise_ids = instance['premise_ids'].array
-				hypothesis_ids = instance['hypothesis_ids'].array
 
-				assert reader._tokenizer.tokenize(premise) == premise_tokens
-				assert reader._tokenizer.tokenize(hypothesis) == hypothesis_tokens
-				assert reader._tokenizer.convert_ids_to_tokens(premise_ids) == premise_tokens
-				assert reader._tokenizer.convert_ids_to_tokens(hypothesis_ids) == hypothesis_tokens
+				# Check that `token_type_ids` has been created correctly
+				assert len(input_ids) == len(token_type_ids)
+				assert token_type_ids[:len(premise_tokens)+2].all() == 0
+				assert token_type_ids[len(premise_tokens)+2:].all() == 1
+
+				# Check that label has been created
 				assert reader._label_dict[instance['metadata'].metadata['label']] == instance['label'].array
 
 		# SNLI

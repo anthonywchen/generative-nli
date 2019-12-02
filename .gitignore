@@ -4,6 +4,7 @@ generative-nli-env/
 data/*/*
 notebooks/
 raw_data/
+tests/**
 *.bin
 *.log
 *.swp
