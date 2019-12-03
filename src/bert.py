@@ -71,9 +71,9 @@ class BertNLI(Model):
 		cls_embed = last_hidden_states[:,0,:]
 
 		# logits.size() = [batch_size, 3]
-		logits = self._linear_layer(cls_embed)
+		logits = self._linear_layer(cls_embed).float()
 		class_probabiltiies = torch.nn.functional.softmax(logits, dim=-1)
-
+		
 		output_dict = {'class_probabilities': class_probabiltiies,
 					   'predicted_label': torch.max(logits, dim=-1)[1],
 					   'metadata': metadata}
