@@ -6,6 +6,11 @@ python -m pytest tests/test_bert_dataset_reader.py -s
 python -m pytest tests/test_bert_training.py -s
 ```
 
+To train a model 
+```
+python train.py [config_file] --include-package src -s [output_directory] --num_runs [num_runs]
+```
+
 ## To Do:
 
 - [x] Add modeling for BERT NLI

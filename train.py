@@ -75,9 +75,7 @@ def get_train_args():
 						   help='Number of times to run the experiment (using different seeds)')
 
 	args = parser.parse_args()
-	print(args)
 	args_dict = vars(args)
-
 	return args_dict
 
 def construct_train_command(args):
@@ -142,7 +140,6 @@ def train():
 
 		# Construct the `allennlp train` command and run it
 		cmd = construct_train_command(args)
-		print("Command run: ", cmd)
 		os.system(cmd)
 
 		# Grab the seeds and write them to file, since allennlp doesn't save seeds in `serialization_dir`

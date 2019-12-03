@@ -8,8 +8,8 @@
 		"lazy": true,
 		"pretrained_model": "bert-base-uncased",
 	},
-	"train_data_path": "data/snli/train.jsonl" ,
-	"validation_data_path": "data/snli/dev.jsonl" ,
+	"train_data_path": "data/mnli/train.jsonl" ,
+	"validation_data_path": "data/mnli/dev.jsonl" ,
 	"model": {
 		"type": "bertnli",
 		"pretrained_model": "bert-base-uncased",
@@ -26,7 +26,7 @@
 		"max_instances_in_memory": 10000, 
 	},
 	"trainer": {
-		"cuda_device": 0,
+		"cuda_device": 1,
 		"num_epochs": 4,
 		"optimizer": {
 			"type": "adam",
