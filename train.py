@@ -131,9 +131,6 @@ def train():
 	for run_number in range(num_runs):
 		# Modify the serialization directory by creating a subdirectory `head_serialization_dir/run_number`
 		args['serialization_dir'] = join(head_serialization_dir, str(run_number))
-
-		# Modify the write directory in dataset reader 
-		config['dataset_reader']['save_dir'] = args['serialization_dir']
 		
 		# Modify the `overrides` arg so that we use the modified config 
 		args['overrides'] = "'" + dumps(config) + "'" # Wrap in quotes for bash
