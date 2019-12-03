@@ -57,26 +57,21 @@ class BertNLI(Model):
 	def forward(self, 
 				input_ids: torch.Tensor, 		# input_ids.size() 		= [batch_size, seq_len]
 				token_type_ids: torch.Tensor, 	# token_type_ids.size() = [batch_size, seq_len]
+				attention_mask: torch.Tensor,	# attention_mask.size() = [batch_size, seq_len]
 				label: torch.Tensor = None,	 	# label.size() 			= [batch_size]
 				metadata = None):
-		bs, seq_len = input_ids.size()
-
 
 		if self.model_class == 'bert':
-			outputs = self._bert_model(input_ids=input_ids, token_type_ids=token_type_ids)
+			outputs = self._bert_model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
 		elif self.model_class == 'roberta':
-			outputs = self._bert_model(input_ids=input_ids)
+			outputs = self._bert_model(input_ids=input_ids, attention_mask=attention_mask)
 
 		# last_hidden_states.size() = [batch_size, seq_len, hidden_size]
 		last_hidden_states = outputs[0]
-		assert last_hidden_states.size()[:2] == (bs, seq_len)
-
 		cls_embed = last_hidden_states[:,0,:]
 
 		# logits.size() = [batch_size, 3]
 		logits = self._linear_layer(cls_embed)
-		assert logits.size() == (bs, 3)
-
 		class_probabiltiies = torch.nn.functional.softmax(logits, dim=-1)
 
 		output_dict = {'class_probabilities': class_probabiltiies,

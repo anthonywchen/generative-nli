@@ -30,26 +30,26 @@ class Tests(AllenNlpTestCase):
 		random.seed(0)
 		torch.manual_seed(0)
 
-	# def test_feed_one_batch(self):
-	# 	""" Tests if we can feed in batches of data through our model """
-	# 	print('\nTest feeding in one batch through our model\n')
-	# 	self.set_seed()
+	def test_feed_one_batch(self):
+		""" Tests if we can feed in batches of data through our model """
+		print('\nTest feeding in one batch through our model\n')
+		self.set_seed()
 
-	# 	config = Params.from_file('tests/sample_bert_base_config.json')
-	# 	model = Model.from_params(vocab=vocab, params=config['model'])
+		config = Params.from_file('tests/sample_bert_base_config.json')
+		model = Model.from_params(vocab=vocab, params=config['model'])
 		
-	# 	reader_params = config.pop('dataset_reader')
-	# 	reader = DatasetReader.by_name(reader_params.pop('type')).from_params(reader_params)
+		reader_params = config.pop('dataset_reader')
+		reader = DatasetReader.by_name(reader_params.pop('type')).from_params(reader_params)
 
-	# 	iterator_params = config.pop('iterator')
-	# 	iterator = DataIterator.by_name(iterator_params.pop('type')).from_params(iterator_params)
+		iterator_params = config.pop('iterator')
+		iterator = DataIterator.by_name(iterator_params.pop('type')).from_params(iterator_params)
 
-	# 	instances = reader.read('data/snli/train.jsonl')
+		instances = reader.read('data/snli/train.jsonl')
 
-	# 	for batch in iterator(instances):
-	# 		output_dict = model(**batch)
-	# 		output_dict['loss'].backward()
-			# break
+		for batch in iterator(instances):
+			output_dict = model(**batch)
+			output_dict['loss'].backward()
+			break
 
 	def test_bert_base_training(self):
 		""" 
@@ -71,7 +71,7 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8272727272727273, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.9, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.7425288627113121, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.6526116728782654, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.8418181818181818, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.8, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.722174068291982, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.6586655676364899, abs_tol=ABS_TOL)

@@ -3,6 +3,7 @@ apex/
 generative-nli-env/
 data/*/*
 notebooks/
+out/
 raw_data/
 tests/**
 *.bin

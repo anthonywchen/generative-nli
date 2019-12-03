@@ -57,6 +57,7 @@ class BertNLIDatasetReader(DatasetReader):
 		hypothesis_ids = self._tokenizer.encode(hypothesis)
 		input_ids = self._tokenizer.add_special_tokens_sentences_pair(premise_ids, hypothesis_ids)
 		token_type_ids = self.get_token_type_ids(input_ids)
+		attention_mask = [1]*len(input_ids)
 
 		metadata = {'premise': premise, 'hypothesis': hypothesis, 
 					'premise_tokens': self._tokenizer.tokenize(premise), 
@@ -65,6 +66,7 @@ class BertNLIDatasetReader(DatasetReader):
 
 		fields = {'input_ids': ArrayField(np.array(input_ids), dtype=np.int64),
 				  'token_type_ids': ArrayField(np.array(token_type_ids), dtype=np.int64),
+				  'attention_mask': ArrayField(np.array(attention_mask), dtype=np.int64),
 				  'metadata': MetadataField(metadata)}
 
 		if label is not None:
