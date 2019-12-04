@@ -71,7 +71,7 @@ def get_train_args():
 	parser.add_argument('--cache-prefix', type=str, default='',
 						   help='Prefix to use for data caching, giving current parameter '
 						   'settings a name in the cache, instead of computing a hash')
-	parser.add_argument('--num_runs', type=int, default=1,
+	parser.add_argument('--num_runs', type=int, required=True,
 						   help='Number of times to run the experiment (using different seeds)')
 
 	args = parser.parse_args()
