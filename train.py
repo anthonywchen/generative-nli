@@ -21,7 +21,7 @@ two steps.
 """
 import argparse
 import git
-from json import loads, dumps
+from json import load, loads, dumps
 from _jsonnet import evaluate_file
 import logging
 import os
@@ -101,6 +101,19 @@ def construct_train_command(args):
 
 	return cmd
 
+def aggregate_training_run_metrics(head_serialization_dir, num_runs):
+	""" Aggregates the training and validation metrics across the training runs """
+	metrics_dict = {key: 0 for key in ['best_validation_accuracy', 'best_validation_loss']}
+
+	for run_number in range(num_runs):
+		cur_metrics_dict = load(open(join(head_serialization_dir, str(run_number), 'metrics.json')))
+		for key in metrics_dict:
+			metrics_dict[key] += cur_metrics_dict[key]/num_runs
+
+	output_file = join(head_serialization_dir, 'aggregated_metrics.json')
+	with open(output_file, 'w') as writer:
+		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
+
 def train():
 	# Check that we have commited all changes from local repository and get commit hash
 	sha = get_commit_hash()
@@ -148,6 +161,8 @@ def train():
 		config['numpy_seed'] += 1
 		config['random_seed'] += 1
 		config['pytorch_seed'] += 1
+
+	aggregate_training_run_metrics(head_serialization_dir, num_runs)
 
 if __name__ == '__main__':
 	train()
