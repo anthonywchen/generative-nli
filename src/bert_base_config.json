@@ -22,7 +22,7 @@
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : 32,
+		"batch_size" : 16,
 		"max_instances_in_memory": 10000, 
 	},
 	"trainer": {
@@ -34,7 +34,7 @@
 		"num_serialized_models_to_keep": 1,
 		"optimizer": {
 			"type": "adam",
-			"lr": 1e-5,
+			"lr": 3e-5,
 		},
 	},
 }
