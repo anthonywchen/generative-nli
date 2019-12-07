@@ -20,7 +20,7 @@ python train.py [config_file] --include-package src -s [output_directory] --num_
 - [x] Add config for BERT NLI
 - [x] Add training script so that we can do multple seeds
 - [x] Add custom trainer so that we have gradient accumulation and half precision training
-- [ ] Aggregation script for different runs
+- [x] Aggregation script for different runs
 - [ ] Evaluation script for evaluating on different datasets
 
 ## Training models:
