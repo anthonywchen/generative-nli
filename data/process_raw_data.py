@@ -64,7 +64,7 @@ def process_hans(input_file, output_file):
 				output_line = {'premise': line[5],
 			   				   'hypothesis': line[6],
 			   				   'label': label,
-			   				   'tag': line[8]}
+			   				   'tag': line[8]+'_'+label}
 
 				writer.write(json.dumps(output_line) + '\n')
 
