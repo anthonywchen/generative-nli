@@ -107,6 +107,7 @@ def main():
 	for run_num in range(num_runs):
 		cur_metrics_dict = load(open(join(args.serialization_dir, str(run_num), 'generalization_metrics.json')))
 
+		# Add keys to aggregated generalization metrics dictionary
 		if metrics_dict == {}:
 			for dataset in cur_metrics_dict:
 				metrics_dict[dataset] = {}
@@ -114,6 +115,7 @@ def main():
 					if 'accuracy' in metric:
 						metrics_dict[dataset][metric] = []
 
+		# Get scores
 		for dataset in metrics_dict:
 			for metric in metrics_dict[dataset]:
 				metrics_dict[dataset][metric].append(cur_metrics_dict[dataset][metric])
@@ -125,6 +127,7 @@ def main():
 			stdev_metric = str(round(stdev(metrics_dict[dataset][metric]), 3))
 			metrics_dict[dataset][metric] = mean_metric + '+-' +  stdev_metric
 
+	# Write aggregated generalization metrics
 	with open(join(args.serialization_dir, 'aggregated_generalization_metrics.json'), 'w') as writer:
 		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
 

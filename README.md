@@ -1,5 +1,6 @@
 # Class Conditional Generative Modeling of Natural Langauge Inference
 
+## Training and Evaluation of BERT and ROBERTa
 To run tests on of the BERT (and ROBERTA) dataset reader and training, run:
 ```
 python -m pytest tests/test_bert_dataset_reader.py -s
@@ -14,6 +15,13 @@ different seeds. To use this script, run:
 python train.py [config_file] --include-package src -s [output_directory] --num_runs 3
 ```
 
+To evaluate the generalization of a trained model (across runs), run:
+```
+python test_bert_generalization.py -s [serializatino_dir] -d [device]
+```
+
+## Training and Evaluation of BART
+
 ## To Do:
 
 - [x] Add modeling for BERT NLI
@@ -21,14 +29,13 @@ python train.py [config_file] --include-package src -s [output_directory] --num_
 - [x] Add training script so that we can do multple seeds
 - [x] Add custom trainer so that we have gradient accumulation and half precision training
 - [x] Aggregation script for different runs
-- [ ] Evaluation script for evaluating on different datasets
+- [x] Evaluation script for evaluating on different datasets
 
 ## Training models:
 - [x] bert base on SNLI
-- [ ] bert base on MNLI
+- [x] bert base on MNLI
 - [ ] roberta base on SNLI
 - [ ] roberta base on MNLI
-
 - [ ] bert large on SNLI
 - [ ] bert large on MNLI
 - [ ] roberta large on SNLI

@@ -26,6 +26,7 @@ from _jsonnet import evaluate_file
 import logging
 import os
 from os.path import isdir, join
+from statistics import mean, stdev
 import sys
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -102,13 +103,19 @@ def construct_train_command(args):
 	return cmd
 
 def aggregate_training_run_metrics(head_serialization_dir, num_runs):
-	""" Aggregates the training and validation metrics across the training runs """
-	metrics_dict = {key: 0 for key in ['best_validation_accuracy', 'best_validation_loss']}
+	""" Aggregates validation metrics across the training runs """
+	metrics_dict = {key: [] for key in ['best_validation_accuracy', 'best_validation_loss']}
 
+	# Gets validation metrics across runs
 	for run_number in range(num_runs):
 		cur_metrics_dict = load(open(join(head_serialization_dir, str(run_number), 'metrics.json')))
 		for key in metrics_dict:
-			metrics_dict[key] += cur_metrics_dict[key]/num_runs
+			metrics_dict[key].append(cur_metrics_dict[key])
+
+	# Computes mean and std deviation of scores across runs
+	for key in metrics_dict:
+		scores = metrics_dict[key]
+		metrics_dict[key] = str(round(mean(scores), 3)) + '+-' +  str(round(stdev(scores), 3))
 
 	output_file = join(head_serialization_dir, 'aggregated_metrics.json')
 	with open(output_file, 'w') as writer:
