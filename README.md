@@ -34,8 +34,8 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 ## Training models:
 - [x] bert base on SNLI
 - [x] bert base on MNLI
-- [ ] roberta base on SNLI
-- [ ] roberta base on MNLI
+- [x] roberta base on SNLI
+- [x] roberta base on MNLI
 - [ ] bert large on SNLI
 - [ ] bert large on MNLI
 - [ ] roberta large on SNLI
