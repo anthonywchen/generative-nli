@@ -18,10 +18,12 @@ class BertNLIDatasetReader(DatasetReader):
 	def __init__(self,
 				 pretrained_model,
 				 percent_data=1,
-				 lazy=False) -> None:
+				 lazy=False,
+				 shuffle=False) -> None:
 		super().__init__(lazy)
 		assert percent_data > 0 and percent_data <= 1
 		self.percent_data = percent_data
+		self.shuffle = shuffle
 
 		self.tokenizer_class = pretrained_model.split('-')[0].lower()
 		
@@ -37,18 +39,19 @@ class BertNLIDatasetReader(DatasetReader):
 
 	@overrides
 	def _read(self, file_path: str):
-		# Determine how many lines are in the input file
-		num_lines = 0
-		for line in Reader(open(file_path)):	num_lines += 1
+		# Load in all lines
+		lines = [line for line in Reader(open(file_path))]
 
 		# Determine how many lines we will use as a percent of the data
-		num_lines_to_use = int(num_lines*self.percent_data)
+		num_lines_to_use = int(len(lines)*self.percent_data)
 		logger.info('Number of data points: %d', num_lines_to_use)
 
+		if self.shuffle:
+			logger.info('Shuffling...')
+			random.shuffle(lines)
+
 		# Create instances
-		for line_num, line in enumerate(Reader(open(file_path))):
-			if line_num > num_lines_to_use:
-				break
+		for line in lines[:num_lines_to_use]:
 			yield self.text_to_instance(**line)
 
 	@overrides
