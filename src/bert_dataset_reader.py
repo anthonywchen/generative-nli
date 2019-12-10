@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from overrides import overrides
 from pytorch_transformers import BertTokenizer, RobertaTokenizer
+import random
 from typing import Callable, Dict, Iterable, Iterator, List
 
 from allennlp.common import Params, Tqdm
