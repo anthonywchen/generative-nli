@@ -85,6 +85,6 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 	- [ ] 16 bs 1e-5lr
 	- [ ] 16 bs 2e-5lr
 	- [ ] 16 bs 3e-5lr
-	- [ ] 32 bs 1e-5lr
-	- [ ] 32 bs 2e-5lr
+	- [x] 32 bs 1e-5lr
+	- [x] 32 bs 2e-5lr
 	- [ ] 32 bs 3e-5lr
