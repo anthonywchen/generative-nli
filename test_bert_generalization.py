@@ -26,18 +26,22 @@ def load_predictor(serialization_dir, device):
 
 def is_correct(output_dict, label, dataset):
 	correct = False
+	# For these datasets, the label is either entails, neutral, or contradicts so 
+	# we can directly use the probabilities from the model.
 	if dataset in ['anli']:
 		if (output_dict['predicted_label'] == 0 and label == 'entailment') or \
 			(output_dict['predicted_label'] == 1 and label == 'neutral') or \
 			(output_dict['predicted_label'] == 2 and label == 'contradiction'):
 			correct = True
-	
-	elif dataset in ['hans', 'rte']:
+
+	# For these datasets, the label is either entails or not entails so 
+	# we sum the neutral and contradicition probabilties as the not entails probability
+	elif dataset in ['hans', 'rte', 'scitail']:
 		class_probs = output_dict['class_probabilities']
 		entail_prob, not_entail_prob = class_probs[0], class_probs[1]+class_probs[2]
 		if (entail_prob >= not_entail_prob and label == 'entailment') or \
 		   (entail_prob < not_entail_prob and label == 'not_entailment'):
-			correct=True
+			correct = True
 	else:
 		raise ValueError('Dataset not defined')
 
@@ -85,6 +89,7 @@ def predict_run(serialization_dir, device):
 	results_dict['anli'] = predict_file(predictor, 'data/anli/test.jsonl', serialization_dir)
 	results_dict['hans'] = predict_file(predictor, 'data/hans/test.jsonl', serialization_dir)
 	results_dict['rte'] = predict_file(predictor, 'data/rte/test.jsonl', serialization_dir)
+	results_dict['scitail'] = predict_file(predictor, 'data/scitail/test.jsonl', serialization_dir)
 
 	with open(join(serialization_dir, 'generalization_metrics.json'), 'w') as writer:
 		writer.write(dumps(results_dict, indent=4, sort_keys=True))

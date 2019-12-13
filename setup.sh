@@ -48,6 +48,10 @@ rm RTE.zip
 mv RTE rte
 
 # Download SCITAIL
+wget http://data.allenai.org.s3.amazonaws.com/downloads/SciTailV1.1.zip
+unzip SciTailV1.1.zip
+rm SciTailV1.1.zip
+mv SciTailV1.1 scitail
 
 #### ADVERSARIAL DATASETS FOR EVALUATING GENERALIZATION
 
@@ -56,6 +60,17 @@ wget https://dl.fbaipublicfiles.com/anli/anli_v0.1.zip
 unzip anli_v0.1.zip
 rm -r __MACOSX anli_v0.1.zip
 mv anli_v0.1 anli
+
+# Download Bizarro (Counterfactually-Augmented Dataset)
+mkdir bizarro
+cd bizzaro
+wget https://github.com/dkaushik96/counterfactually-augmented-data/archive/master.zip
+unzip master.zip
+mv counterfactually-augmented-data-master/NLI/revised_premise/ .
+mv counterfactually-augmented-data-master/NLI/revised_hypothesis/ .
+rm master.zip
+rm -r counterfactually-augmented-data-master/
+cd ../
 
 # Download HANS
 mkdir hans
