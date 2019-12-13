@@ -32,28 +32,24 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 - [x] Evaluation script for evaluating on different datasets
 
 ## Training models:
-- [x] BERT-BASE SNLI 0.897+-0.001
-	- [x] 32 bs 1e-5lr
-	- [x] 32 bs 2e-5lr
-- [x] ROBERTA-BASE SNLI 0.907+-0.001
-	- [x] 32 bs 1e-5lr
-	- [x] 32 bs 2e-5lr
-- [x] BERT-BASE MNLI 0.827+-0.001
-	- [x] 32 bs 1e-5lr
-	- [x] 32 bs 2e-5lr
-- [x] ROBERTA-BASE MNLI 0.862+-0.003
-	- [x] 32 bs 1e-5lr
-	- [x] 32 bs 2e-5lr
 
-- [ ] bert large on SNLI
+##### SNLI RESULTS:
+
+- [x] BERT-BASE 	0.897+-0.001
+- [x] ROBERTA-BASE 	0.907+-0.001
+- [ ] BERT-LARGE
 	- [ ] 32 bs 1e-5lr
 	- [ ] 32 bs 2e-5lr
-- [ ] bert large on MNLI
+- [ ] ROBERTA-LARGE	
 	- [ ] 32 bs 1e-5lr
 	- [ ] 32 bs 2e-5lr
-- [ ] roberta large on SNLI
+
+##### MNLI RESULTS:
+- [x] BERT-BASE 	0.827+-0.001
+- [x] ROBERTA-BASE 	0.862+-0.003
+- [ ] BERT-LARGE
 	- [ ] 32 bs 1e-5lr
 	- [ ] 32 bs 2e-5lr
-- [ ] roberta large on MNLI
+- [ ] ROBERTA-LARGE
 	- [ ] 32 bs 1e-5lr
 	- [ ] 32 bs 2e-5lr
