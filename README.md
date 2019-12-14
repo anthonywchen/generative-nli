@@ -30,11 +30,12 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 - [x] Add custom trainer so that we have gradient accumulation and half precision training
 - [x] Aggregation script for different runs
 - [x] Evaluation script for evaluating on different datasets
+- [ ] Process BIZARRO dataset
+- [ ] Add new datasets to test_bert_generalization.py
 
 ## Training models:
 
 ##### SNLI RESULTS:
-
 - [x] BERT-BASE 	0.897+-0.001
 - [x] ROBERTA-BASE 	0.907+-0.001
 - [ ] BERT-LARGE
@@ -50,6 +51,6 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 - [ ] BERT-LARGE
 	- [ ] 32 bs 1e-5lr
 	- [ ] 32 bs 2e-5lr
-- [ ] ROBERTA-LARGE
-	- [ ] 32 bs 1e-5lr
-	- [ ] 32 bs 2e-5lr
+- [x] ROBERTA-LARGE
+	- [x] 32 bs 1e-5lr
+	- [x] 32 bs 2e-5lr
