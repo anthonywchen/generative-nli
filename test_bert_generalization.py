@@ -14,6 +14,8 @@ from tqdm import tqdm
 from src.bert_dataset_reader import BertNLIDatasetReader
 from src.bert import BertNLI
 
+BATCH_SIZE = 15
+
 def load_predictor(serialization_dir, device):
 	archive = load_archive(join(serialization_dir, 'model.tar.gz'))
 	model = archive.model.eval()
@@ -52,30 +54,43 @@ def predict_file(predictor, file_path, serialization_dir):
 	dataset = file_path.split('/')[1]
 	print('Scoring ', dataset)
 
-	tags = set()
+	# Load in all data points first
+	instances, tags, labels = [], [], []
+
+	for line in Reader(open(file_path)):
+		instances.append(predictor._dataset_reader.text_to_instance(premise=line['premise'], hypothesis=line['hypothesis']))
+		labels.append(line['label'])
+		tags.append(line['tag'])
+	
+	total = len(instances)
+
+	# Feed instances through model in batches
+	output_dicts = []
+
+	for start_idx in tqdm(range(0, total, BATCH_SIZE)):
+		batch_instances = instances[start_idx:start_idx+BATCH_SIZE]
+		output_dicts += predictor.predict_batch_instance(batch_instances)
+	assert len(output_dicts) == len(labels) == len(tags) == total
+
+	# Compute accuracy statistics
+	tag_set = set()
 	tag_scores = {}
 	num_correct = 0
-	total = 0
 
-	for line in tqdm(Reader(open(file_path))):
-		instance = predictor._dataset_reader.text_to_instance(premise=line['premise'], hypothesis=line['hypothesis'])
-		output_dict = predictor.predict_instance(instance)
-		total += 1
-
-		tag = line['tag']
+	for output_dict, tag, label in zip(output_dicts, tags, labels):
 		if tag:
-			if tag not in tags:
-				tags.add(tag)
+			if tag not in tag_set:
+				tag_set.add(tag)
 				tag_scores[tag+'_correct'] = 0
 				tag_scores[tag+'_total'] = 0
 			tag_scores[tag+'_total'] += 1
 
-		if is_correct(output_dict, line['label'], dataset):
+		if is_correct(output_dict, label, dataset):
 			if tag: 
 				tag_scores[tag+'_correct'] += 1
 			num_correct += 1
-	
-	results_dict = {'accuracy_'+tag: tag_scores[tag+'_correct']/tag_scores[tag+'_total'] for tag in tags}
+
+	results_dict = {'accuracy_'+tag: tag_scores[tag+'_correct']/tag_scores[tag+'_total'] for tag in tag_set}
 	results_dict.update(tag_scores)
 	results_dict['num_correct'] = num_correct
 	results_dict['total'] = total
