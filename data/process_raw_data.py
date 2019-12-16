@@ -62,7 +62,8 @@ def process_scitail(input_file, output_file):
 
 				output_line = {'premise': premise, 
 							   'hypothesis': hypothesis,
-							   'label': label}
+							   'label': label,
+							   'tag': ''}
 				writer.write(json.dumps(output_line) + '\n')
 
 def process_anli(input_dir, output_file):

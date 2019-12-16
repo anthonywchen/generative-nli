@@ -5,6 +5,7 @@ import argparse
 from glob import glob
 from jsonlines import Reader
 from json import dumps, load
+import os
 from os.path import isdir, join
 from pprint import pprint
 from statistics import mean, stdev
@@ -17,7 +18,7 @@ def load_predictor(serialization_dir, device):
 	archive = load_archive(join(serialization_dir, 'model.tar.gz'))
 	model = archive.model.eval()
 	if device >= 0: 
-		model.to(device)
+		model.to(0)
 
 	dataset_reader_params = archive.config.pop('dataset_reader')
 	reader = DatasetReader.by_name(dataset_reader_params.pop('type')).from_params(dataset_reader_params)
@@ -28,7 +29,7 @@ def is_correct(output_dict, label, dataset):
 	correct = False
 	# For these datasets, the label is either entails, neutral, or contradicts so 
 	# we can directly use the probabilities from the model.
-	if dataset in ['anli']:
+	if dataset in ['anli', 'bizarro']:
 		if (output_dict['predicted_label'] == 0 and label == 'entailment') or \
 			(output_dict['predicted_label'] == 1 and label == 'neutral') or \
 			(output_dict['predicted_label'] == 2 and label == 'contradiction'):
@@ -83,10 +84,13 @@ def predict_file(predictor, file_path, serialization_dir):
 	return results_dict
 
 def predict_run(serialization_dir, device):
+	os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
+
 	predictor = load_predictor(serialization_dir, device)
 	results_dict = {}
 
 	results_dict['anli'] = predict_file(predictor, 'data/anli/test.jsonl', serialization_dir)
+	results_dict['bizarro'] = predict_file(predictor, 'data/bizarro/test.jsonl', serialization_dir)
 	results_dict['hans'] = predict_file(predictor, 'data/hans/test.jsonl', serialization_dir)
 	results_dict['rte'] = predict_file(predictor, 'data/rte/test.jsonl', serialization_dir)
 	results_dict['scitail'] = predict_file(predictor, 'data/scitail/test.jsonl', serialization_dir)

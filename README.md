@@ -48,5 +48,5 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 ##### MNLI RESULTS:
 - [x] BERT-BASE 	0.827+-0.001
 - [x] ROBERTA-BASE 	0.862+-0.003
-- [ ] BERT-LARGE
-- [x] ROBERTA-LARGE
+- [ ] BERT-LARGE	
+- [x] ROBERTA-LARGE 0.897+-0.002
