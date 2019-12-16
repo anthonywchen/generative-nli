@@ -90,11 +90,11 @@ def predict_file(predictor, file_path, serialization_dir):
 				tag_scores[tag+'_correct'] += 1
 			num_correct += 1
 
-	results_dict = {'accuracy_'+tag: tag_scores[tag+'_correct']/tag_scores[tag+'_total'] for tag in tag_set}
+	results_dict = {'accuracy_'+tag: 100*tag_scores[tag+'_correct']/tag_scores[tag+'_total'] for tag in tag_set}
 	results_dict.update(tag_scores)
 	results_dict['num_correct'] = num_correct
 	results_dict['total'] = total
-	results_dict['accuracy'] = num_correct/total
+	results_dict['accuracy'] = 100*num_correct/total
 
 	return results_dict
 
