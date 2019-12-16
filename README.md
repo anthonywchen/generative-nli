@@ -30,7 +30,7 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 - [x] Add custom trainer so that we have gradient accumulation and half precision training
 - [x] Aggregation script for different runs
 - [x] Evaluation script for evaluating on different datasets
-- [ ] Process BIZARRO dataset
+- [x] Process BIZARRO dataset
 - [ ] Add new datasets to test_bert_generalization.py
 
 ## Training models:

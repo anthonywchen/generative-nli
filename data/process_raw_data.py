@@ -46,12 +46,10 @@ def process_rte(input_dir, output_file):
 		for line in processed_lines:
 			writer.write(json.dumps(line) + '\n')
 
-def process_scitail(input_dir, output_file):
+def process_scitail(input_file, output_file):
 	create_dir(dirname(output_file))
 
-	def process_file(input_file, tag):
-		processed_lines = []
-
+	with open(output_file, 'w') as writer:
 		with open(input_file) as f:
 			for line in f:
 				premise, hypothesis, label = line.strip().split('\t')
@@ -60,23 +58,12 @@ def process_scitail(input_dir, output_file):
 				elif label == 'neutral':
 					label = 'not_entailment'
 				else:
-					print(label)
 					raise ValueError()
 
 				output_line = {'premise': premise, 
 							   'hypothesis': hypothesis,
-							   'label': label, 
-							   'tag': tag}
-				processed_lines.append(output_line)
-
-		return processed_lines
-
-	processed_lines = process_file(join(input_dir, 'scitail_1.0_dev.tsv'), tag='dev')
-	processed_lines += process_file(join(input_dir, 'scitail_1.0_test.tsv'), tag='test')
-
-	with open(output_file, 'w') as writer:
-		for line in processed_lines:
-			writer.write(json.dumps(line) + '\n')
+							   'label': label}
+				writer.write(json.dumps(output_line) + '\n')
 
 def process_anli(input_dir, output_file):
 	create_dir(dirname(output_file))
@@ -110,7 +97,32 @@ def process_anli(input_dir, output_file):
 			writer.write(json.dumps(line) + '\n')
 
 def process_bizarro(input_dir, output_file):
-	pass
+	create_dir(dirname(output_file))
+
+	def process_file(input_file):
+		processed_lines = []
+
+		for i, line in enumerate(open(input_file)):
+			if i == 0: # Skip header line
+				continue
+				
+			premise, hypothesis, label = line.strip().split('\t')
+			assert label in ['entailment', 'neutral', 'contradiction']
+
+			output_line = {'premise': premise,
+						   'hypothesis': hypothesis,
+						   'label': label,
+						   'tag': dirname(input_file)}
+			processed_lines.append(output_line)
+
+		return processed_lines
+
+	processed_lines = process_file(join(input_dir, 'revised_premise/test.tsv'))
+	processed_lines += process_file(join(input_dir, 'revised_hypothesis/test.tsv'))
+
+	with open(output_file, 'w') as writer:
+		for line in processed_lines:
+			writer.write(json.dumps(line) + '\n')
 
 def process_hans(input_file, output_file):
 	create_dir(dirname(output_file))
@@ -146,7 +158,7 @@ def main():
 	process_rte('raw_data/rte', 'data/rte/test.jsonl')
 
 	print('PROCESSING SCITAIL...')
-	process_scitail('raw_data/scitail/tsv_format', 'data/scitail/test.jsonl')
+	process_scitail('raw_data/scitail/tsv_format/scitail_1.0_test.tsv', 'data/scitail/test.jsonl')
 
 	print('PROCESSING ANLI...')
 	process_anli('raw_data/anli', 'data/anli/test.jsonl')
