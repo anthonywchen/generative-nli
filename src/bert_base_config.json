@@ -32,6 +32,7 @@
 		"num_epochs": 4,
 		"accumulation_steps": 16,
 		"half_precision": true,
+		"grad_clipping": 1.0,
 		"opt_level": "O2", 
 		"num_serialized_models_to_keep": 0,
 		"optimizer": {
