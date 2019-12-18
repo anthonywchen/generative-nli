@@ -270,10 +270,11 @@ class ApexTrainer(TrainerBase):
 			self._tensorboard.enable_activation_logging(self.model)
 
 	def rescale_gradients(self) -> Optional[float]:
-		if self._half_precision:
-			return training_util.rescale_gradients(amp.master_params(self.optimizer), self._grad_norm)
-		else:
-			return training_util.rescale_gradients(self.model, self._grad_norm)
+		if self._grad_clipping:
+			if self._half_precision:
+				return torch.nn.utils.clip_grad_norm_(amp.master_params(self.optimizer), self._grad_clipping)
+			else:
+				return torch.nn.utils.clip_grad_norm_(self.model.parameters(), self._grad_clipping)
 
 	def get_mini_batch(self, batch: torch.Tensor, start_idx: int, accumulation_steps: int) -> torch.Tensor:
 		"""
@@ -534,11 +535,6 @@ class ApexTrainer(TrainerBase):
 			raise ConfigurationError("Could not recover training from the checkpoint.  Did you mean to output to "
 									 "a different serialization directory or delete the existing serialization "
 									 "directory?")
-
-		if self._half_precision:
-			training_util.enable_gradient_clipping(amp.master_params(self.optimizer), self._grad_clipping)
-		else:
-			training_util.enable_gradient_clipping(self.model, self._grad_clipping)
 
 		logger.info("Beginning training.")
 
