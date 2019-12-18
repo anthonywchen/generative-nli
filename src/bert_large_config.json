@@ -6,13 +6,14 @@
 	"dataset_reader": {
 		"type": "bertnli",
 		"lazy": true,
-		"pretrained_model": "bert-large-uncased",
+		"pretrained_model": "robert-large",
+		"shuffle": true,
 	},
 	"train_data_path": "data/mnli/train.jsonl" ,
 	"validation_data_path": "data/mnli/dev.jsonl" ,
 	"model": {
 		"type": "bertnli",
-		"pretrained_model": "bert-large-uncased",
+		"pretrained_model": "robert-large",
 		"linear_layer": {
 			"input_dim": 1024,
 			"num_layers": 1,
@@ -35,7 +36,7 @@
 		"num_serialized_models_to_keep": 0,
 		"optimizer": {
 			"type": "adam",
-			"lr": 1e-5,
+			"lr": 1e-6,
 		},
 	},
 }

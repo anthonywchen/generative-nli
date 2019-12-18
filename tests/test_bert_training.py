@@ -131,6 +131,6 @@ class Tests(AllenNlpTestCase):
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
 		assert isclose(final_metrics['training_accuracy'], 0.75591985428051, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8216048666409084, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.7978515642029899, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.8216048666409084, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['best_validation_loss'], 0.6829243302345276, abs_tol=ABS_TOL)
