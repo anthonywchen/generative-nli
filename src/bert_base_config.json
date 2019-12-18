@@ -29,15 +29,15 @@
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 1,
-		"num_epochs": 4,
+		"num_epochs": 7,
 		"accumulation_steps": 16,
 		"half_precision": true,
 		"opt_level": "O2", 
 		"num_serialized_models_to_keep": 0,
-		"grad_clipping": 1.0,
+		// "grad_clipping": 1.0,
 		"optimizer": {
 			"type": "adam",
-			"lr": 2e-5,
+			"lr": 1e-5,
 		},
 	},
 }
