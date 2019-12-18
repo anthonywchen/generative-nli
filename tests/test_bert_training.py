@@ -49,10 +49,10 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8418181818181818, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.722174068291982, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.6586655676364899, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.7868852459016393, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.7869072386196682, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.6547983288764954, abs_tol=ABS_TOL)
 
 	def test_bert_base_training_apex_trainer(self):
 		""" 
@@ -74,10 +74,10 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8418181818181818, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.722174068291982, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.6586655676364899, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.7868852459016393, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.7869072386196682, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.6547983288764954, abs_tol=ABS_TOL)
 
 	def test_bert_base_training_apex_trainer_half_prec_grad_accum(self):
 		""" 
@@ -101,7 +101,7 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8418181818181818, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.9, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.7174956496211066, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.6359161138534546, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.7650273224043715, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.7978515642029899, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.6901264190673828, abs_tol=ABS_TOL)
