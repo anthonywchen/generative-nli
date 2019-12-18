@@ -27,11 +27,11 @@ class BertNLIDatasetReader(DatasetReader):
 		self.shuffle = shuffle
 
 		self.tokenizer_class = pretrained_model.split('-')[0].lower()
-		
+
 		if self.tokenizer_class == 'roberta':	
 			self._tokenizer = RobertaTokenizer.from_pretrained(pretrained_model)
-		elif self.tokenizer_class == 'bert':	
-			self._tokenizer = BertTokenizer.from_pretrained(pretrained_model)
+		elif self.tokenizer_class == 'bert':
+			self._tokenizer = BertTokenizer.from_pretrained(pretrained_model, do_lower_case=True)
 		else:									
 			raise ValueError('tokenizer_model must either be roberta or bert')
 

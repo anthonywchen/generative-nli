@@ -23,7 +23,7 @@
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : 64,
+		"batch_size" : 32,
 		"max_instances_in_memory": 10000,
 	},
 	"trainer": {
