@@ -279,10 +279,10 @@ class ApexTrainer(TrainerBase):
 		""" Create a schedule with a learning rate that decreases linearly after
 		linearly increasing during a warmup period.
 		"""
-		def lr_lambda(current_step):
-			num_warmup_steps = num_training_steps*self._warmup_proportion
-			logger.info('Number of warmup steps: %d', num_warmup_steps)
+		num_warmup_steps = int(num_training_steps*self._warmup_proportion)
+		logger.info('Number of warmup steps: %d', num_warmup_steps)
 
+		def lr_lambda(current_step):
 			if current_step == 1:
 				logger.info('Warming learning rate up!')
 			elif current_step == num_warmup_steps+1:
@@ -408,7 +408,6 @@ class ApexTrainer(TrainerBase):
 			batches_this_epoch += 1
 			self._batch_num_total += 1
 			batch_num_total = self._batch_num_total
-
 			self.optimizer.zero_grad()
 
 			loss = self.batch_loss(batch_group, for_training=True)
