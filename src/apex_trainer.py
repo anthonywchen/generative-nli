@@ -281,6 +281,7 @@ class ApexTrainer(TrainerBase):
 		"""
 		def lr_lambda(current_step):
 			num_warmup_steps = num_training_steps*self._warmup_proportion
+			logger.info('Number of warmup steps: %d', num_warmup_steps)
 
 			if current_step == 1:
 				logger.info('Warming learning rate up!')
