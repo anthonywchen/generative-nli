@@ -17,6 +17,7 @@ from typing import Dict, Optional, List, Tuple, Union, Iterable, Any, NamedTuple
 
 import torch
 import torch.optim.lr_scheduler
+from torch.optim.lr_scheduler import LambdaLR
 
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError, parse_cuda_device
@@ -73,7 +74,8 @@ class ApexTrainer(TrainerBase):
 				 should_log_learning_rate: bool = False,
 				 log_batch_size_period: Optional[int] = None,
 				 moving_average: Optional[MovingAverage] = None,
-				 half_precision: bool = False) -> None:
+				 half_precision: bool = False,
+				 warmup_proportion: float = None) -> None:
 		"""
 		A trainer for doing supervised learning. It just takes a labeled dataset
 		and a ``DataIterator``, and uses the supplied ``Optimizer`` to learn the weights
@@ -248,6 +250,10 @@ class ApexTrainer(TrainerBase):
 		self._momentum_scheduler = momentum_scheduler
 		self._moving_average = moving_average
 
+		if warmup_proportion != None:
+			assert warmup_proportion >= 0 and warmup_proportion <= 1	
+		self._warmup_proportion = warmup_proportion
+
 		# We keep the total batch number as an instance variable because it
 		# is used inside a closure for the hook which logs activations in
 		# ``_enable_activation_logging``.
@@ -268,6 +274,24 @@ class ApexTrainer(TrainerBase):
 		# Enable activation logging.
 		if histogram_interval is not None:
 			self._tensorboard.enable_activation_logging(self.model)
+
+	def get_linear_schedule_with_warmup(self, num_training_steps, last_epoch=-1):
+		""" Create a schedule with a learning rate that decreases linearly after
+		linearly increasing during a warmup period.
+		"""
+		def lr_lambda(current_step):
+			num_warmup_steps = num_training_steps*self._warmup_proportion
+
+			if current_step == 1:
+				logger.info('Warming learning rate up!')
+			elif current_step == num_warmup_steps+1:
+				logger.info('Decaying linear rate down!')
+
+			if current_step < num_warmup_steps:
+				return float(current_step) / float(max(1, num_warmup_steps))
+			return max(0.0, float(num_training_steps - current_step) / float(max(1, num_training_steps - num_warmup_steps)))
+
+		return LambdaLR(self.optimizer, lr_lambda, last_epoch)
 
 	def rescale_gradients(self) -> Optional[float]:
 		if self._grad_clipping:
@@ -406,6 +430,8 @@ class ApexTrainer(TrainerBase):
 				param_updates = {name: param.detach().cpu().clone()
 								 for name, param in self.model.named_parameters()}
 				self.optimizer.step()
+				if self.scheduler != None:
+					self.scheduler.step()
 				for name, param in self.model.named_parameters():
 					param_updates[name].sub_(param.detach().cpu())
 					update_norm = torch.norm(param_updates[name].view(-1, ))
@@ -414,6 +440,8 @@ class ApexTrainer(TrainerBase):
 													   update_norm / (param_norm + 1e-7))
 			else:
 				self.optimizer.step()
+				if self.scheduler != None:
+					self.scheduler.step()
 
 			# Update moving averages
 			if self._moving_average is not None:
@@ -544,6 +572,12 @@ class ApexTrainer(TrainerBase):
 		metrics: Dict[str, Any] = {}
 		epochs_trained = 0
 		training_start_time = time.time()
+
+		t_total = len(self.train_data) // self.iterator._batch_size * self._num_epochs
+		if self._warmup_proportion != None:
+			self.scheduler = self.get_linear_schedule_with_warmup(num_training_steps=t_total)
+		else:
+			self.scheduler = None
 
 		metrics['best_epoch'] = self._metric_tracker.best_epoch
 		for key, value in self._metric_tracker.best_epoch_metrics.items():
@@ -762,6 +796,7 @@ class ApexTrainer(TrainerBase):
 		lr_scheduler_params = params.pop("learning_rate_scheduler", None)
 		momentum_scheduler_params = params.pop("momentum_scheduler", None)
 		half_precision = params.pop("half_precision", False)
+		warmup_proportion = params.pop("warmup_proportion", None)
 
 		if isinstance(cuda_device, list):
 			model_device = cuda_device[0]
@@ -838,4 +873,5 @@ class ApexTrainer(TrainerBase):
 				   should_log_learning_rate=should_log_learning_rate,
 				   log_batch_size_period=log_batch_size_period,
 				   moving_average=moving_average,
-				   half_precision=half_precision)
+				   half_precision=half_precision,
+				   warmup_proportion=warmup_proportion)

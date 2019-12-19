@@ -41,7 +41,8 @@ class BertNLIDatasetReader(DatasetReader):
 	@overrides
 	def _read(self, file_path: str):
 		# Load in all lines
-		lines = [line for line in Reader(open(file_path))]
+		with open(file_path) as f:
+			lines = [line for line in Reader(f)]
 
 		# Determine how many lines we will use as a percent of the data
 		num_lines_to_use = int(len(lines)*self.percent_data)

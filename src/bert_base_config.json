@@ -5,7 +5,7 @@
 	"datasets_for_vocab_creation": [],
 	"dataset_reader": {
 		"type": "bertnli",
-		"lazy": true,
+		"lazy": false,
 		"pretrained_model": "bert-base-uncased",
 		"shuffle": true,
 	},
@@ -24,20 +24,20 @@
 	"iterator": {
 		"type": "basic",
 		"batch_size" : 32,
-		"max_instances_in_memory": 10000,
 	},
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 1,
-		"num_epochs": 7,
+		"num_epochs": 3,
 		"accumulation_steps": 16,
 		"half_precision": true,
 		"opt_level": "O2", 
 		"num_serialized_models_to_keep": 0,
 		// "grad_clipping": 1.0,
+		"validation_metric": "+accuracy",
 		"optimizer": {
 			"type": "adam",
-			"lr": 1e-5,
+			"lr": 2e-5,
 		},
 	},
 }
