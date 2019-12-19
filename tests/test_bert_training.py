@@ -159,7 +159,7 @@ class Tests(AllenNlpTestCase):
 
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
+		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_9.json')))
 		assert isclose(final_metrics['training_accuracy'], 0.8688524590163934, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['best_validation_accuracy'], 1, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['training_loss'], 0.7283544301986694, abs_tol=ABS_TOL)
