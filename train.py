@@ -19,6 +19,7 @@ two steps.
 	subdirectories, `./tmp/0` and `./tmp/1` and store two training runs in the two subdirectories
 	with different random seeds.
 """
+from allennlp.common.params import parse_overrides
 import argparse
 import git
 from json import load, loads, dumps
@@ -74,6 +75,8 @@ def get_train_args():
 						   'settings a name in the cache, instead of computing a hash')
 	parser.add_argument('--num_runs', type=int, required=True,
 						   help='Number of times to run the experiment (using different seeds)')
+	parser.add_argument('--sha', type=str,
+						   help='Hash of the current commit')
 
 	args = parser.parse_args()
 	args_dict = vars(args)
@@ -115,22 +118,25 @@ def aggregate_training_run_metrics(head_serialization_dir, num_runs):
 	# Computes mean and std deviation of scores across runs
 	for key in metrics_dict:
 		scores = metrics_dict[key]
-		metrics_dict[key] = str(round(mean(scores), 3)) + '+-' +  str(round(stdev(scores), 3))
+		metrics_dict[key] = str(round(100*mean(scores), 1)) + '+-' +  str(round(100*stdev(scores), 1))
 
 	output_file = join(head_serialization_dir, 'aggregated_metrics.json')
 	with open(output_file, 'w') as writer:
 		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
 
 def train():
-	# Check that we have commited all changes from local repository and get commit hash
-	sha = get_commit_hash()
-
 	# Load command line arguments
 	args = get_train_args()
 
-	# Load config file
-	config = loads(evaluate_file(args['param_path']))
+	# Get the commit hash if it hasn't been passed in
+	if 'sha' in args:
+		sha = args['sha'] 
+		del args['sha']
+	else:
+		sha = get_commit_hash()
 
+	# Load config file if it isn't passed in
+	config = parse_overrides(args['overrides']) if 'overrides' in args else loads(evaluate_file(args['param_path']))
 	# Set the cuda device as a environment variable, since there are issues
 	# setting the GPU as GPU1 with apex.
 	if 'cuda_device' in config['trainer']:
@@ -165,9 +171,9 @@ def train():
 			f.write(dumps(seed_dict) + '\n')
 
 		# Add 1 to the seeds in the config for the next run
-		config['numpy_seed'] += 1
-		config['random_seed'] += 1
-		config['pytorch_seed'] += 1
+		config['numpy_seed'] += 10
+		config['random_seed'] += 10
+		config['pytorch_seed'] += 10
 
 	aggregate_training_run_metrics(head_serialization_dir, num_runs)
 

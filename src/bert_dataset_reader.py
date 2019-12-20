@@ -19,19 +19,17 @@ class BertNLIDatasetReader(DatasetReader):
 	def __init__(self,
 				 pretrained_model,
 				 percent_data=1,
-				 lazy=False,
-				 shuffle=False) -> None:
+				 lazy=False) -> None:
 		super().__init__(lazy)
 		assert percent_data > 0 and percent_data <= 1
 		self.percent_data = percent_data
-		self.shuffle = shuffle
 
 		self.tokenizer_class = pretrained_model.split('-')[0].lower()
-
+		
 		if self.tokenizer_class == 'roberta':	
 			self._tokenizer = RobertaTokenizer.from_pretrained(pretrained_model)
 		elif self.tokenizer_class == 'bert':
-			self._tokenizer = BertTokenizer.from_pretrained(pretrained_model)
+			self._tokenizer = BertTokenizer.from_pretrained(pretrained_model, do_lower_case=True)
 		else:									
 			raise ValueError('tokenizer_model must either be roberta or bert')
 
@@ -48,12 +46,12 @@ class BertNLIDatasetReader(DatasetReader):
 		num_lines_to_use = int(len(lines)*self.percent_data)
 		logger.info('Number of data points: %d', num_lines_to_use)
 
-		if self.shuffle:
-			logger.info('Shuffling...')
-			random.shuffle(lines)
+		if self.percent_data < 1:
+			logger.info('Sampling lines...')
+			lines = random.sample(lines, num_lines_to_use)
 
 		# Create instances
-		for line in lines[:num_lines_to_use]:
+		for line in lines:
 			yield self.text_to_instance(**line)
 
 	@overrides
