@@ -28,7 +28,7 @@
 		"type": "apextrainer",
 		"cuda_device": 1,
 		"num_epochs": [3, 4],
-		"accumulation_steps": 16,
+		"accumulation_steps": 12,
 		"half_precision": true,
 		"opt_level": "O1", 
 		"num_serialized_models_to_keep": 0,
