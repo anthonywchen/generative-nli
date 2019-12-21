@@ -11,7 +11,6 @@ import logging
 from math import isclose
 import os
 from os.path import isdir, join
-from pprint import pprint
 import random
 import shutil
 import torch
@@ -21,7 +20,7 @@ from src.bert_dataset_reader import BertNLIDatasetReader
 from src.bert import BertNLI
 
 ABS_TOL = 0.000001
-os.environ["CUDA_VISIBLE_DEVICES"]="1"		
+os.environ["CUDA_VISIBLE_DEVICES"]="0"		
 vocab = Vocabulary()
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -130,10 +129,10 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.7996357012750456, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.7789435182298933, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.8014571948998178, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.7775518774986268, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['best_validation_accuracy'], 0.6666666666666666, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.8235960006713867, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.8307085037231445, abs_tol=ABS_TOL)
 
 	def test_bert_base_training_scheduler(self):
 		""" 
@@ -160,10 +159,10 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_9.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.7996357012750456, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.7789435182298933, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.9034608378870674, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.6801348158291408, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['best_validation_accuracy'], 0.6666666666666666, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.8235960006713867, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.8217151165008545, abs_tol=ABS_TOL)
 
 	def test_bert_base_training_bert_adam(self):
 		""" 
@@ -192,7 +191,7 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.9581056466302368, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.5991698486464364, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.9562841530054644, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.5950934324945722, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.7135392427444458, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.6395448446273804, abs_tol=ABS_TOL)

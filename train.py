@@ -118,7 +118,7 @@ def aggregate_training_run_metrics(head_serialization_dir, num_runs):
 	# Computes mean and std deviation of scores across runs
 	for key in metrics_dict:
 		scores = metrics_dict[key]
-		metrics_dict[key] = str(round(100*mean(scores), 1)) + '+-' +  str(round(100*stdev(scores), 1))
+		metrics_dict[key] = str(round(100*mean(scores), 1)) + ' +- ' +  str(round(100*stdev(scores), 1))
 
 	output_file = join(head_serialization_dir, 'aggregated_metrics.json')
 	with open(output_file, 'w') as writer:
