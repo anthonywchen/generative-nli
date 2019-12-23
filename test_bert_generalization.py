@@ -23,6 +23,7 @@ def load_predictor(serialization_dir, device):
 		model.to(0)
 
 	dataset_reader_params = archive.config.pop('dataset_reader')
+	dataset_reader_params.params['max_seq_length'] = None # Turn off truncation
 	reader = DatasetReader.by_name(dataset_reader_params.pop('type')).from_params(dataset_reader_params)
 	
 	return Predictor(model, reader)
@@ -147,9 +148,9 @@ def main():
 	# Compute average and stdev across runs
 	for dataset in metrics_dict:
 		for metric in metrics_dict[dataset]:
-			mean_metric = str(round(mean(metrics_dict[dataset][metric]), 3))
-			stdev_metric = str(round(stdev(metrics_dict[dataset][metric]), 3))
-			metrics_dict[dataset][metric] = mean_metric + '+-' +  stdev_metric
+			mean_metric = str(round(mean(metrics_dict[dataset][metric]), 1))
+			stdev_metric = str(round(stdev(metrics_dict[dataset][metric]), 1))
+			metrics_dict[dataset][metric] = mean_metric + ' +- ' +  stdev_metric
 
 	# Write aggregated generalization metrics
 	with open(join(args.serialization_dir, 'aggregated_generalization_metrics.json'), 'w') as writer:

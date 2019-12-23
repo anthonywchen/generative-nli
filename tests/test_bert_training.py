@@ -106,6 +106,34 @@ class Tests(AllenNlpTestCase):
 		assert isclose(final_metrics['best_validation_accuracy'], 0.7777777777777778, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['best_validation_loss'], 0.7556754946708679, abs_tol=ABS_TOL)
 
+	def test_bert_base_training_apex_trainer_half_prec_grad_accum_max_seq_len(self):
+		""" 
+		Tests that we can run a training run with our own trainer 
+		with half precision training and gradient accumulation.
+		"""
+		print('\test_bert_base_training_apex_trainer_half_prec_grad_accum_max_seq_len\n')
+		self.set_seed()
+
+		config = Params.from_file('tests/sample_bert_base_config.json')
+		config.params['dataset_reader']['max_seq_length'] = 128
+		config.params['trainer']['accumulation_steps'] = 2
+		config.params['trainer']['half_precision'] = True
+		config.params['trainer']['opt_level'] = 'O1'
+		output_directory = 'tests/bert_base_apex_half_prec_grad_accum_max_seq_len'
+		if isdir(output_directory): 
+			shutil.rmtree(output_directory)
+
+		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
+		trainer.train()
+
+		# Check that final metrics are correct. This can be useful since different versions 
+		# sometimes yield different results and this can potentially reveal this discrepency. 
+		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
+		assert isclose(final_metrics['training_accuracy'], 0.7941712204007286, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.7682669196810041, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.7777777777777778, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.7651489973068237, abs_tol=ABS_TOL)
+
 	def test_bert_base_training_grad_clipping(self):
 		""" 
 		Tests that we can run a training run with our own trainer 

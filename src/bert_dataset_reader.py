@@ -19,11 +19,12 @@ class BertNLIDatasetReader(DatasetReader):
 	def __init__(self,
 				 pretrained_model,
 				 percent_data=1,
+				 max_seq_length=None,
 				 lazy=False) -> None:
 		super().__init__(lazy)
 		assert percent_data > 0 and percent_data <= 1
 		self.percent_data = percent_data
-
+		self.max_seq_length = max_seq_length
 		self.tokenizer_class = pretrained_model.split('-')[0].lower()
 		
 		if self.tokenizer_class == 'roberta':	
@@ -56,15 +57,29 @@ class BertNLIDatasetReader(DatasetReader):
 
 	@overrides
 	def text_to_instance(self, premise: str, hypothesis: str, label: str = None, tag=None) -> Instance:
-		premise_ids = self._tokenizer.encode(premise)
-		hypothesis_ids = self._tokenizer.encode(hypothesis)
+		premise_tokens = self._tokenizer.tokenize(premise)
+		hypothesis_tokens = self._tokenizer.tokenize(hypothesis)
+
+		if self.max_seq_length != None:
+			self._truncate_seq_pair(premise_tokens, hypothesis_tokens)
+
+		premise_ids = self._tokenizer.convert_tokens_to_ids(premise_tokens)
+		hypothesis_ids = self._tokenizer.convert_tokens_to_ids(hypothesis_tokens)
+
 		input_ids = self._tokenizer.add_special_tokens_sentences_pair(premise_ids, hypothesis_ids)
 		token_type_ids = self.get_token_type_ids(input_ids)
 		attention_mask = [1]*len(input_ids)
 
+		# Add padding if max_seq_length is defined
+		if self.max_seq_length != None:
+			padding = [0] * (self.max_seq_length - len(input_ids))
+			input_ids += padding
+			attention_mask += padding
+			token_type_ids += padding
+
 		metadata = {'premise': premise, 'hypothesis': hypothesis, 
-					'premise_tokens': self._tokenizer.tokenize(premise), 
-					'hypothesis_tokens': self._tokenizer.tokenize(hypothesis),
+					'premise_tokens': premise_tokens,
+					'hypothesis_tokens': hypothesis_tokens,
 					'label': label, 'tag': tag}
 
 		fields = {'input_ids': ArrayField(np.array(input_ids), dtype=np.int64),
@@ -76,6 +91,25 @@ class BertNLIDatasetReader(DatasetReader):
 			fields['label'] = ArrayField(np.array(self._label_dict[label]), dtype=np.int64)
 
 		return Instance(fields)
+
+	def _truncate_seq_pair(self, tokens_a, tokens_b):
+		"""Truncates a sequence pair in place to the maximum length."""
+		# This is a simple heuristic which will always truncate the longer sequence
+		# one token at a time. This makes more sense than truncating an equal percent
+		# of tokens from each, since if one sequence is very short then each token
+		# that's truncated likely contains more information than a longer sequence.
+
+		num_special_tokens = 3 if self.tokenizer_class == 'bert' else 4
+		max_length = self.max_seq_length - num_special_tokens
+
+		while True:
+			total_length = len(tokens_a) + len(tokens_b)
+			if total_length <= max_length:
+				break
+			if len(tokens_a) > len(tokens_b):
+				tokens_a.pop()
+			else:
+				tokens_b.pop()
 
 	def get_token_type_ids(self, ids):
 		for pos, token_id in enumerate(ids):
