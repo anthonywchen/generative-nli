@@ -1,4 +1,4 @@
-{	
+{
 	"random_seed": 42,
 	"pytorch_seed": 42,
 	"numpy_seed": 42,
@@ -8,14 +8,14 @@
 	"dataset_reader": {
 		"type": "bertnli",
 		"lazy": false,
-		"pretrained_model": "bert-large-uncased",
-		"max_seq_length": [128],
+		"pretrained_model": "roberta-base",
+		"max_seq_length": [256],
 	},
 	"model": {
 		"type": "bertnli",
-		"pretrained_model": "bert-large-uncased",
+		"pretrained_model": "roberta-base",
 		"linear_layer": {
-			"input_dim": 1024,
+			"input_dim": 768,
 			"num_layers": 1,
 			"hidden_dims": 3,
 			"activations": ["linear"],
@@ -28,16 +28,16 @@
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 0,
-		"num_epochs": [3, 4], 
-		"accumulation_steps": 2,
+		"num_epochs": [3, 4],
+		"accumulation_steps": 16,
 		"half_precision": true,
 		"opt_level": "O1", 
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
-		"warmup_proportion": 0.1,
+		"warmup_proportion": 0.06,
 		"optimizer": {
-			"type": "bert_adam",
-			"lr": [1e-5, 2e-5],
+			"type": "adam",
+			"lr": [1e-5, 2e-5, 3e-5],
 			"weight_decay": [0.01],
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],
