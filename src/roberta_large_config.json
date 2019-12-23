@@ -9,7 +9,7 @@
 		"type": "bertnli",
 		"lazy": false,
 		"pretrained_model": "roberta-large",
-		"max_seq_length": [256],
+		"max_seq_length": [128],
 	},
 	"model": {
 		"type": "bertnli",

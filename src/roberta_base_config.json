@@ -9,7 +9,7 @@
 		"type": "bertnli",
 		"lazy": false,
 		"pretrained_model": "roberta-base",
-		"max_seq_length": [256],
+		"max_seq_length": [128],
 	},
 	"model": {
 		"type": "bertnli",
@@ -29,7 +29,7 @@
 		"type": "apextrainer",
 		"cuda_device": 1,
 		"num_epochs": [3, 4],
-		"accumulation_steps": 16,
+		"accumulation_steps": 32,
 		"half_precision": true,
 		"opt_level": "O1", 
 		"num_serialized_models_to_keep": 0,
