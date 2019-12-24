@@ -72,16 +72,15 @@ class BertNLI(Model):
 
 		# logits.size() = [batch_size, 3]
 		logits = self._linear_layer(cls_embed).float()
-		class_probabiltiies = torch.nn.functional.softmax(logits, dim=-1)
 		
-		output_dict = {'class_probabilities': class_probabiltiies,
+		output_dict = {'class_probabilities': torch.nn.functional.softmax(logits, dim=-1),
 					   'predicted_label': torch.max(logits, dim=-1)[1],
 					   'metadata': metadata}
 
 		if label is not None:		
 			label = label.long()
-			self.metrics['accuracy'](logits, label) 
-			output_dict['loss'] = self.ce_loss(class_probabiltiies, label)
+			self.metrics['accuracy'](logits, label)
+			output_dict['loss'] = self.ce_loss(logits, label)
 			output_dict['label'] = label
 
 		return output_dict
