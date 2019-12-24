@@ -129,14 +129,14 @@ def train():
 	args = get_train_args()
 
 	# Get the commit hash if it hasn't been passed in
-	if 'sha' in args:
+	if args['sha']:
 		sha = args['sha'] 
-		del args['sha']
 	else:
 		sha = get_commit_hash()
+	del args['sha']
 
 	# Load config file if it isn't passed in
-	config = parse_overrides(args['overrides']) if 'overrides' in args else loads(evaluate_file(args['param_path']))
+	config = parse_overrides(args['overrides']) if args['overrides'] else loads(evaluate_file(args['param_path']))
 	# Set the cuda device as a environment variable, since there are issues
 	# setting the GPU as GPU1 with apex.
 	if 'cuda_device' in config['trainer']:
