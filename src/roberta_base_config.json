@@ -27,7 +27,7 @@
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 1,
+		"cuda_device": 0,
 		"num_epochs": [3],
 		"accumulation_steps": 32,
 		"half_precision": true,
