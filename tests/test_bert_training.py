@@ -20,7 +20,7 @@ from src.bert_dataset_reader import BertNLIDatasetReader
 from src.bert import BertNLI
 
 ABS_TOL = 0.000001
-os.environ["CUDA_VISIBLE_DEVICES"]="0"		
+os.environ["CUDA_VISIBLE_DEVICES"]="1"		
 vocab = Vocabulary()
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -30,124 +30,68 @@ class Tests(AllenNlpTestCase):
 		random.seed(0)
 		torch.manual_seed(0)
 
-	def test_bert_base_training(self):
-		""" 
-		Tests that we can run a training run, and 
-		record the output scores so that we can always check back 
-		"""
-		print('\ntest_bert_base_training\n')
-		self.set_seed()
+	# def test_bert_training(self):
+	# 	""" 
+	# 	Tests that we can run a training run, and 
+	# 	record the output scores so that we can always check back 
+	# 	"""
+	# 	print('\test_training\n')
+	# 	self.set_seed()
 
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		output_directory = 'tests/bert_base'
-		if isdir(output_directory): 
-			shutil.rmtree(output_directory)
+	# 	config = Params.from_file('tests/sample_bert_base_config.json')
+	# 	output_directory = 'tests/bert_base'
+	# 	if isdir(output_directory): 
+	# 		shutil.rmtree(output_directory)
 
-		trainer = TrainerBase.from_params(params=config, serialization_dir=output_directory)
-		trainer.train()
+	# 	trainer = TrainerBase.from_params(params=config, serialization_dir=output_directory)
+	# 	trainer.train()
 
-		# Check that final metrics are correct. This can be useful since different versions 
-		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8342440801457195, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.738686866419656, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.6855943202972412, abs_tol=ABS_TOL)
+	# 	# Check that final metrics are correct. This can be useful since different versions 
+	# 	# sometimes yield different results and this can potentially reveal this discrepency. 
+	# 	final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
+	# 	assert isclose(final_metrics['training_accuracy'], 0.8670309653916212, abs_tol=ABS_TOL)
+	# 	assert isclose(final_metrics['training_loss'], 0.4130164819104331, abs_tol=ABS_TOL)
+	# 	assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
+	# 	assert isclose(final_metrics['best_validation_loss'], 0.40207767486572266, abs_tol=ABS_TOL)
 
-	def test_bert_base_training_apex_trainer(self):
-		""" 
-		Tests that we can run a training run with our own trainer.
-		We should get the same results as using TrainerBase.
-		"""
-		print('\ntest_bert_base_training_apex_trainer\n')
-		self.set_seed()
+	# def test_apex_trainer(self):
+	# 	""" 
+	# 	Tests that we can run a training run with our own trainer.
+	# 	We should get the same results as using TrainerBase.
+	# 	"""
+	# 	print('\ntest_apex_trainer\n')
+	# 	self.set_seed()
 
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		config.params['trainer']['accumulation_steps'] = 0
-		output_directory = 'tests/bert_base_apex'
-		if isdir(output_directory): 
-			shutil.rmtree(output_directory)
+	# 	config = Params.from_file('tests/sample_bert_base_config.json')
+	# 	config.params['trainer']['accumulation_steps'] = 16
+	# 	output_directory = 'tests/bert_base_apex'
+	# 	if isdir(output_directory): 
+	# 		shutil.rmtree(output_directory)
 
-		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-		trainer.train()
+	# 	trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
+	# 	trainer.train()
 
-		# Check that final metrics are correct. This can be useful since different versions 
-		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8342440801457195, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.738686866419656, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.6855943202972412, abs_tol=ABS_TOL)
+	# 	# Check that final metrics are correct. This can be useful since different versions 
+	# 	# sometimes yield different results and this can potentially reveal this discrepency. 
+	# 	final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
+	# 	assert isclose(final_metrics['training_accuracy'], 0.8670309653916212, abs_tol=ABS_TOL)
+	# 	assert isclose(final_metrics['training_loss'], 0.4130164819104331, abs_tol=ABS_TOL)
+	# 	assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
+	# 	assert isclose(final_metrics['best_validation_loss'], 0.40207767486572266, abs_tol=ABS_TOL)
 
-	def test_bert_base_training_apex_trainer_half_prec_grad_accum(self):
+	def test_half_prec_grad_accum(self):
 		""" 
 		Tests that we can run a training run with our own trainer 
 		with half precision training and gradient accumulation.
 		"""
-		print('\test_bert_base_training_apex_trainer_half_prec_grad_accum\n')
+		print('\ntest_half_prec_grad_accum\n')
 		self.set_seed()
 
 		config = Params.from_file('tests/sample_bert_base_config.json')
 		config.params['trainer']['accumulation_steps'] = 2
 		config.params['trainer']['half_precision'] = True
-		config.params['trainer']['opt_level'] = 'O1'
-		output_directory = 'tests/bert_base_apex_half_prec_grad_accum'
-		if isdir(output_directory): 
-			shutil.rmtree(output_directory)
-
-		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-		trainer.train()
-
-		# Check that final metrics are correct. This can be useful since different versions 
-		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8069216757741348, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.761639746597835, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.7777777777777778, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.7556754946708679, abs_tol=ABS_TOL)
-
-	def test_bert_base_training_apex_trainer_half_prec_grad_accum_max_seq_len(self):
-		""" 
-		Tests that we can run a training run with our own trainer 
-		with half precision training and gradient accumulation.
-		"""
-		print('\test_bert_base_training_apex_trainer_half_prec_grad_accum_max_seq_len\n')
-		self.set_seed()
-
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		config.params['dataset_reader']['max_seq_length'] = 128
-		config.params['trainer']['accumulation_steps'] = 2
-		config.params['trainer']['half_precision'] = True
-		config.params['trainer']['opt_level'] = 'O1'
-		output_directory = 'tests/bert_base_apex_half_prec_grad_accum_max_seq_len'
-		if isdir(output_directory): 
-			shutil.rmtree(output_directory)
-
-		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-		trainer.train()
-
-		# Check that final metrics are correct. This can be useful since different versions 
-		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.7941712204007286, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.7682669196810041, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.7777777777777778, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.7651489973068237, abs_tol=ABS_TOL)
-
-	def test_bert_base_training_grad_clipping(self):
-		""" 
-		Tests that we can run a training run with our own trainer 
-		with half precision training and gradient accumulation.
-		"""
-		print('\ntest_bert_base_training_grad_clipping\n')
-		self.set_seed()
-
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		config.params['trainer']['accumulation_steps'] = 2
-		config.params['trainer']['half_precision'] = True
-		config.params['trainer']['grad_clipping'] = 1.0
 		config.params['trainer']['opt_level'] = 'O2'
-		output_directory = 'tests/bert_base_training_grad_clipping'
+		output_directory = 'tests/bert_base_half_prec_grad_accum'
 		if isdir(output_directory): 
 			shutil.rmtree(output_directory)
 
@@ -157,69 +101,7 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8014571948998178, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.7775518774986268, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.8579234972677595, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 0.4314053590808596, abs_tol=ABS_TOL)
 		assert isclose(final_metrics['best_validation_accuracy'], 0.6666666666666666, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.8307085037231445, abs_tol=ABS_TOL)
-
-	def test_bert_base_training_scheduler(self):
-		""" 
-		Tests that we can run a training run with our own trainer 
-		with half precision training and gradient accumulation and with a linear warmup and decay
-		"""
-		print('\ntest_bert_base_training_scheduler\n')
-		self.set_seed()
-
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		config.params['trainer']['num_epochs'] = 10
-		config.params['trainer']['accumulation_steps'] = 2
-		config.params['trainer']['half_precision'] = True
-		config.params['trainer']['grad_clipping'] = 1.0
-		config.params['trainer']['opt_level'] = 'O2'
-		config.params['trainer']['warmup_proportion'] = .1
-		output_directory = 'tests/bert_base_training_scheduler'
-		if isdir(output_directory): 
-			shutil.rmtree(output_directory)
-
-		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-		trainer.train()
-
-		# Check that final metrics are correct. This can be useful since different versions 
-		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_9.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.9034608378870674, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.6801348158291408, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.6666666666666666, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.8217151165008545, abs_tol=ABS_TOL)
-
-	def test_bert_base_training_bert_adam(self):
-		""" 
-		Tests that we can run a training run with our own trainer 
-		with half precision training and gradient accumulation and bert_adam with weight decay.
-		"""
-		print('\ntest_bert_base_training_bert_adam\n')
-		self.set_seed()
-
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		config.params['trainer']['optimizer']['type'] = 'bert_adam'
-		config.params['trainer']['accumulation_steps'] = 2
-		config.params['trainer']['half_precision'] = True
-		config.params['trainer']['grad_clipping'] = 1.0
-		config.params['trainer']['opt_level'] = 'O2'
-		config.params['trainer']['optimizer']['weight_decay'] = 0.01
-		config.params['trainer']['optimizer']['parameter_groups'] = [[["bias", "LayerNorm.bias", "LayerNorm.weight", "layer_norm.weight"], {"weight_decay": 0.0}]]
-
-		output_directory = 'tests/bert_base_training_bert_adam'
-		if isdir(output_directory): 
-			shutil.rmtree(output_directory)
-
-		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-		trainer.train()
-
-		# Check that final metrics are correct. This can be useful since different versions 
-		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.9562841530054644, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.5950934324945722, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.6395448446273804, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.4753444790840149, abs_tol=ABS_TOL)
