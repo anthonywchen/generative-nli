@@ -21,6 +21,7 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError, parse_cuda_device
+from allennlp.common.registrable import Registrable
 from allennlp.common.util import (dump_metrics, gpu_memory_mb, peak_memory_mb,
 								  get_frozen_and_tunable_parameter_names, lazy_groups_of)
 from allennlp.common.tqdm import Tqdm
@@ -42,6 +43,8 @@ from allennlp.training.trainer_pieces import TrainerPieces
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
+# Add AdamW to Optimizers since current vistion of AllenNLP didn't register it
+Registrable._registry[Optimizer]['adamw'] = torch.optim.AdamW
 
 @TrainerBase.register("apextrainer")
 class ApexTrainer(TrainerBase):

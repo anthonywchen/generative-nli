@@ -31,13 +31,14 @@
 		"num_epochs": [3, 4],
 		"accumulation_steps": 32,
 		"half_precision": true,
-		"opt_level": "O1", 
+		"opt_level": "O1",
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
 		"warmup_proportion": 0.06,
 		"optimizer": {
-			"type": "adam",
+			"type": "adamw",
 			"lr": [1e-5, 2e-5, 3e-5],
+			"betas": [0.9, 0.98],
 			"weight_decay": [0.01],
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],

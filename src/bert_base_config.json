@@ -28,8 +28,8 @@
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 0,
-		"num_epochs": [3, 4],
-		"accumulation_steps": 12,
+		"num_epochs": [5],
+		"accumulation_steps": 32,
 		"half_precision": true,
 		"opt_level": "O1", 
 		"num_serialized_models_to_keep": 0,
@@ -37,7 +37,7 @@
 		"warmup_proportion": 0.1,
 		"optimizer": {
 			"type": "bert_adam",
-			"lr": [2e-5],
+			"lr": [1e-5, 2e-5, 3e-5],
 			"weight_decay": [0.01],
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],
