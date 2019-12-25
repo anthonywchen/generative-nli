@@ -36,8 +36,9 @@
 		"validation_metric": "+accuracy",
 		"warmup_proportion": 0.06,
 		"optimizer": {
-			"type": "adam",
+			"type": "adamw",
 			"lr": [1e-5],
+			"betas": [0.9, 0.98],
 			"weight_decay": 0.01,
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],
