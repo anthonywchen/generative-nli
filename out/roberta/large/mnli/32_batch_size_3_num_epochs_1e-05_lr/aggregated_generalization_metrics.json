@@ -1,0 +1,30 @@
+{
+    "anli": {
+        "accuracy": "32.1 +- 1.4",
+        "accuracy_r1_test": "44.7 +- 3.2",
+        "accuracy_r2_test": "27.5 +- 2.3",
+        "accuracy_r3_test": "25.5 +- 0.9"
+    },
+    "bizarro": {
+        "accuracy": "75.7 +- 0.7",
+        "accuracy_raw_data/bizarro/revised_hypothesis": "83.3 +- 1.1",
+        "accuracy_raw_data/bizarro/revised_premise": "68.1 +- 0.6"
+    },
+    "hans": {
+        "accuracy": "74.1 +- 3.3",
+        "accuracy_constituent_entailment": "99.2 +- 0.4",
+        "accuracy_constituent_not_entailment": "21.4 +- 8.2",
+        "accuracy_lexical_overlap_entailment": "99.9 +- 0.1",
+        "accuracy_lexical_overlap_not_entailment": "87.6 +- 8.0",
+        "accuracy_subsequence_entailment": "100.0 +- 0.0",
+        "accuracy_subsequence_not_entailment": "36.3 +- 4.5"
+    },
+    "rte": {
+        "accuracy": "85.9 +- 1.3",
+        "accuracy_dev": "85.9 +- 0.4",
+        "accuracy_train": "85.9 +- 1.5"
+    },
+    "scitail": {
+        "accuracy": "82.8 +- 0.7"
+    }
+}
