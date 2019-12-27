@@ -2,10 +2,12 @@ __pycache__/
 apex/
 generative-nli-env/
 data/*/*
+log/
 notebooks/
-out/
+# out/
 raw_data/
-tests/
+tests/*/*
+vocabulary/
 *.bin
 *.log
 *.swp
