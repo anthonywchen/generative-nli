@@ -17,7 +17,7 @@ python train.py [config_file] --include-package src -s [output_directory] --num_
 
 To evaluate the generalization of a trained model (across runs), run:
 ```
-python test_bert_generalization.py -s [serializatino_dir] -d [device]
+python test_bert_generalization.py -s [serialization_dir] -d [device]
 ```
 
 ## Training and Evaluation of BART
@@ -31,22 +31,9 @@ python test_bert_generalization.py -s [serializatino_dir] -d [device]
 - [x] Aggregation script for different runs
 - [x] Evaluation script for evaluating on different datasets
 - [x] Process BIZARRO dataset
-- [ ] Add new datasets to test_bert_generalization.py
+- [x] Add new datasets to test_bert_generalization.py
+- [ ] Add dataset reader for BART
+- [ ] Add model for BART
+- [ ] Add tests for BART
 
-## Training models:
 
-##### SNLI RESULTS:
-- [x] BERT-BASE 	0.897+-0.001
-- [x] ROBERTA-BASE 	0.907+-0.001
-- [ ] BERT-LARGE
-	- [ ] 32 bs 1e-5lr
-	- [ ] 32 bs 1e-6lr
-- [ ] ROBERTA-LARGE	
-	- [ ] 32 bs 1e-5lr
-	- [ ] 32 bs 1e-6lr
-
-##### MNLI RESULTS:
-- [x] BERT-BASE 	0.827+-0.001
-- [x] ROBERTA-BASE 	0.862+-0.003
-- [ ] BERT-LARGE	
-- [x] ROBERTA-LARGE 0.897+-0.002

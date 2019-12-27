@@ -4,7 +4,6 @@ generative-nli-env/
 data/*/*
 log/
 notebooks/
-# out/
 raw_data/
 tests/*/*
 vocabulary/
