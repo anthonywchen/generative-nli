@@ -5,7 +5,7 @@ data/*/*
 notebooks/
 out/
 raw_data/
-tests/**
+tests/
 *.bin
 *.log
 *.swp
