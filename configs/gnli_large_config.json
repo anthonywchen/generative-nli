@@ -1,0 +1,49 @@
+{	
+	"random_seed": 42,
+	"pytorch_seed": 42,
+	"numpy_seed": 42,
+	"train_data_path": "data/mnli/train.jsonl" ,
+	"validation_data_path": "data/mnli/dev.jsonl" ,
+	"datasets_for_vocab_creation": [],
+	"dataset_reader": {
+		"type": "gnli",
+		"lazy": false,
+		"pretrained_model": "roberta-large",
+		"max_premise_length": 128,
+		"max_premise_length": 80,
+	},
+	"model": {
+		"type": "gnli",
+		"pretrained_model": "bart-large",
+		"linear_layer": {
+			"input_dim": 1024,
+			"num_layers": 1,
+			"hidden_dims": 3,
+			"activations": ["linear"],
+		},
+	},
+	"iterator": {
+		"type": "basic",
+		"batch_size" : 32,
+	},
+	"trainer": {
+		"type": "apextrainer",
+		"cuda_device": 0,
+		"num_epochs": [3, 4],
+		"accumulation_steps": 8,
+		"half_precision": true,
+		"opt_level": "O2",
+		"num_serialized_models_to_keep": 0,
+		"validation_metric": "+accuracy",
+		"warmup_proportion": 0.06,
+		"optimizer": {
+			"type": "adamw",
+			"lr": [1e-5, 2e-5, 3e-5],
+			"betas": [0.9, 0.98],
+			"weight_decay": 0.01,
+			"parameter_groups": [
+			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],
+			],
+		},
+	},
+}

@@ -170,7 +170,7 @@ def train():
 		with open(join(args['serialization_dir'], 'seeds.json'), 'w') as f:
 			f.write(dumps(seed_dict) + '\n')
 
-		# Add 1 to the seeds in the config for the next run
+		# Add 10 to the seeds in the config for the next run
 		config['numpy_seed'] += 10
 		config['random_seed'] += 10
 		config['pytorch_seed'] += 10

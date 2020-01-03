@@ -43,7 +43,7 @@ from allennlp.training.trainer_pieces import TrainerPieces
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
-# Add AdamW to Optimizers since current vistion of AllenNLP didn't register it
+# Add AdamW to Optimizers since current vistion of AllenNLP (1.2.0) didn't register it
 Registrable._registry[Optimizer]['adamw'] = torch.optim.AdamW
 
 @TrainerBase.register("apextrainer")

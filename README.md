@@ -32,8 +32,8 @@ python test_bert_generalization.py -s [serialization_dir] -d [device]
 - [x] Evaluation script for evaluating on different datasets
 - [x] Process BIZARRO dataset
 - [x] Add new datasets to test_bert_generalization.py
-- [ ] Add dataset reader for BART
+- [x] Add dataset reader for BART
 - [ ] Add model for BART
-- [ ] Add tests for BART
+- [x] Add tests for BART dataset reader
 
 
