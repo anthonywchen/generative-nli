@@ -88,9 +88,11 @@ class GNLIDatasetReader(DatasetReader):
 			target += decoder_padding
 			prev_output_tokens += decoder_padding
 
-		# Replicate the hypothesis three times
+		# Replicate the hypothesis and the lengths three times
 		target = [target]*3
 		prev_output_tokens = [prev_output_tokens]*3
+		src_length = [src_length]*3
+		target_length = [target_length]*3
 
 		####################
 		##### Create instance

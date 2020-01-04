@@ -15,12 +15,6 @@
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"linear_layer": {
-			"input_dim": 1024,
-			"num_layers": 1,
-			"hidden_dims": 3,
-			"activations": ["linear"],
-		},
 		"discriminative_loss_weight": [0, 0.25, 0.5, 0.75, 1]
 	},
 	"iterator": {

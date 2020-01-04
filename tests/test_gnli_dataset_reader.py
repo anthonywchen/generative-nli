@@ -52,8 +52,6 @@ class Tests(AllenNlpTestCase):
 								   max_hypothesis_length=max_hypothesis_length, percent_data=0.001)
 
 		for instance in reader.read('data/mnli/train.jsonl'):
-			src_length = instance['src_lengths'].array.tolist()[0]
-			target_length = instance['target_lengths'].array.tolist()[0]
 			premise_tokens = instance['metadata'].metadata['premise_tokens']
 			hypothesis_tokens = instance['metadata'].metadata['hypothesis_tokens']
 			assert reader._label_dict[instance['metadata'].metadata['label']] == instance['label'].array
@@ -63,6 +61,8 @@ class Tests(AllenNlpTestCase):
 				src = instance['src'].array.tolist()[i]
 				prev_output_tokens = instance['prev_output_tokens'].array.tolist()[i]
 				target = instance['target'].array.tolist()[i]
+				src_length = instance['src_lengths'].array.tolist()[0][i]
+				target_length = instance['target_lengths'].array.tolist()[0][i]
 
 				# Test encoder and decoder inputs are at max length
 				assert len(src) == max_premise_length
