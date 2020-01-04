@@ -34,6 +34,8 @@ python test_bert_generalization.py -s [serialization_dir] -d [device]
 - [x] Add new datasets to test_bert_generalization.py
 - [x] Add dataset reader for BART
 - [ ] Add model for BART
+- [x] Are the weights of the encoder and the decoder tied? yes
+- [ ] How to add 3 new embeddings for the labels?
 - [x] Add tests for BART dataset reader
 
 

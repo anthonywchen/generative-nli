@@ -13,7 +13,7 @@ from allennlp.modules.feedforward import FeedForward
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
-from allennlp.training.metrics.categorical_accuracy import  CategoricalAccuracy
+from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -23,22 +23,36 @@ class GNLI(Model):
 	Parameters
 	----------
 	pretrained_model: ``str`` required.
-		The pretrained model used to intiailize the BERT model.
+		The name of the pretrained model used to intiailize the BART model.
 	linear_layer: ``FeedForward`` required.
 		A linear layer that casts the output of BART to match the number of possible labels.
+	discriminative_loss_weight: ``float``
+		This float specifies how strongly we weigh the discriminative loss 
+		in the affine combination between the generative and the discriminative loss.
+		The generative loss is the autoregressive loss with the correct label.
+		The discriminative loss is the cross-entropy loss of p(h|p, label) over all
+		labels.
+		A value of 0 means we only rely on the generative loss. 
+		A value of 1 means we only rely on the discriminative loss.
 	vocab: ``Vocabulary`` 
 		A vocabulary file that should be empty, since BART has its own vocabulary.
 	"""
 	def __init__(self, 
-				 pretrained_model: str, 
+				 pretrained_model: str,
 				 linear_layer: FeedForward,
-				 vocab: Vocabulary = Vocabulary(), 
+				 discriminative_loss_weight: float = 0,
+				 vocab: Vocabulary = Vocabulary(),
 				 initializer: InitializerApplicator = InitializerApplicator()) -> None:
-		super(BertNLI, self).__init__(vocab)
+		super(GNLI, self).__init__(vocab)
+		assert pretrained_model in ['bart.large']
+		assert discriminative_loss_weight >= 0 and discriminative_loss_weight <= 1
+
+		self._bart = torch.hub.load('pytorch/fairseq', pretrained_model).model
 		self._linear_layer = linear_layer
+		self._discriminative_loss_weight = discriminative_loss_weight
+
 		self.metrics = {'accuracy': CategoricalAccuracy()}
 		self.ce_loss = torch.nn.CrossEntropyLoss()
-	
 		initializer(self)
 
 		# Log the number of trainable parameters in the model
@@ -47,21 +61,16 @@ class GNLI(Model):
 
 	@overrides
 	def forward(self, 
-				input_ids: torch.Tensor, 		# input_ids.size() 		= [batch_size, seq_len]
-				token_type_ids: torch.Tensor, 	# token_type_ids.size() = [batch_size, seq_len]
-				attention_mask: torch.Tensor,	# attention_mask.size() = [batch_size, seq_len]
-				label: torch.Tensor = None,	 	# label.size() 			= [batch_size]
+				src: torch.Tensor, 					# src.size()	 			= [batch_size, premise_len]
+				src_lengths: torch.Tensor, 			# src_lengths.size() 		= [batch_size]
+				prev_output_tokens: torch.Tensor, 	# prev_output_tokens.size() = [batch_size, hypothesis_len]
+				target: torch.Tensor,				# target.size() 			= [batch_size, hypothesis_len]	
+				target_lengths: torch.Tensor, 		# target_lengths.size()		= [batch_size]
+				label: torch.Tensor = None,	 		# label.size() 				= [batch_size]
 				metadata = None):
+		
 
-		if self.model_class == 'bert':
-			outputs = self._bert_model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
-		elif self.model_class == 'roberta':
-			outputs = self._bert_model(input_ids=input_ids, attention_mask=attention_mask)
-
-		# last_hidden_states.size() = [batch_size, seq_len, hidden_size]
-		last_hidden_states = outputs[0]
-		cls_embed = last_hidden_states[:,0,:]
-
+		
 		# logits.size() = [batch_size, 3]
 		logits = self._linear_layer(cls_embed).float()
 		
@@ -71,9 +80,15 @@ class GNLI(Model):
 
 		if label is not None:		
 			label = label.long()
+			output_dict['label'] = label
+
+			# Discriminative Loss
+
+			# Generative Loss
+
+			# Mix the two losses
 			self.metrics['accuracy'](logits, label)
 			output_dict['loss'] = self.ce_loss(logits, label)
-			output_dict['label'] = label
 
 		return output_dict
 
