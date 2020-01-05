@@ -88,11 +88,10 @@ class GNLIDatasetReader(DatasetReader):
 			target += decoder_padding
 			prev_output_tokens += decoder_padding
 
-		# Replicate the hypothesis and the lengths three times
+		# Replicate the hypothesis and the `src_lengths` three times
 		target = [target]*3
 		prev_output_tokens = [prev_output_tokens]*3
 		src_length = [src_length]*3
-		target_length = [target_length]*3
 
 		####################
 		##### Create instance
@@ -104,10 +103,10 @@ class GNLIDatasetReader(DatasetReader):
 					'label': label, 'tag': tag}
 
 		fields = {'src':	 			ArrayField(np.array(src), dtype=np.int64),
-				  'src_lengths': 		ArrayField(np.array([src_length]), dtype=np.int64),
+				  'src_lengths': 		ArrayField(np.array(src_length), dtype=np.int64),
 				  'prev_output_tokens': ArrayField(np.array(prev_output_tokens), dtype=np.int64),
 				  'target': 			ArrayField(np.array(target), dtype=np.int64),
-				  'target_lengths':		ArrayField(np.array([target_length]), dtype=np.int64),
+				  'target_lengths':		ArrayField(np.array(target_length), dtype=np.int64),
 				  'metadata': 			MetadataField(metadata)}
 
 		if label is not None:
