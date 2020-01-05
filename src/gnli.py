@@ -119,12 +119,13 @@ class GNLI(Model):
 			self.metrics['accuracy'](class_logits, label)
 			
 			# Discriminative Loss
-			discriminative_loss = 0
+			discriminative_loss = self.ce_loss(class_logits, label)
 
-			# Generative Loss
+			# Generative Loss.
+			# Iterate through batch entries, respecting the original hypothesis lengths (i.e. ignore padding).
 			generative_loss = 0
 
-			# Mix the two losses
+			# Mix the disciminative and generative losses via an affine combination
 			output_dict['loss'] = self.discriminative_loss_weight*discriminative_loss + (1-self.discriminative_loss_weight)*generative_loss
 
 		return output_dict
@@ -152,11 +153,10 @@ class GNLI(Model):
 		
 		Thus, we iterate through each token and multiply its probability 
 		by 10 to the negative base10 of the probability while that amount we multiply by has not exceeded 
-		`10**min_base10_factor. This ensures that at the end we have multiplied by our constant while
+		`10**min_base10_factor`. This ensures that at the end we have multiplied by our constant while
 		preventing overflow.
 		
-		The resulting logits preseve the probabilites when passed through a softmax function while 
-		preventing underflow.
+		The resulting logits preseve the probabilites when passed through a softmax function.
 		"""
 		batch_size, num_classes, _ = hypothesis_probabilities.size()
 		
@@ -179,6 +179,7 @@ class GNLI(Model):
 					cur_base10_factor = math.ceil(math.log10(cur_token_prob.item())*-1)
 					cur_base10_factor = min(cur_base10_factor, multiplicative_factor)
 					
+					# Multiply current hypothesis token probability by its negative base10 value to prevent underflow
 					class_logits[batch_entry, label_entry] *= cur_token_prob*(10**cur_base10_factor)
 
 					multiplicative_factor -= cur_base10_factor
