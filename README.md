@@ -33,9 +33,12 @@ python test_bert_generalization.py -s [serialization_dir] -d [device]
 - [x] Process BIZARRO dataset
 - [x] Add new datasets to test_bert_generalization.py
 - [x] Add dataset reader for BART
-- [ ] Add model for BART
+- [x] Add model for BART
 - [x] Are the weights of the encoder and the decoder tied? yes
-- [ ] How to add 3 new embeddings for the labels?
+- [x] How to add 3 new embeddings for the labels?
 - [x] Add tests for BART dataset reader
+- [ ] Add tests for the calculation of the logits
+- [ ] Add tests for model training
+- [x] Add calculation of losses and the mixing
 
 
