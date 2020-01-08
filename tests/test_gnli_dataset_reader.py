@@ -73,6 +73,7 @@ class Tests(AllenNlpTestCase):
 
 				# Test conversion of tokens to ids for encoder input and decoder input and target
 				cur_class_token = '<'+cur_class+'>'
+				assert src[1] == 50265 + i
 				assert tokenizer.convert_tokens_to_ids(['<s>'] + [cur_class_token] + premise_tokens + ['</s>']) == src[:src_length]
 				assert tokenizer.convert_tokens_to_ids(['</s>', '<s>'] + hypothesis_tokens) == prev_output_tokens[:target_length]
 				assert tokenizer.convert_tokens_to_ids(['<s>'] + hypothesis_tokens + ['</s>']) == target[:target_length]

@@ -77,7 +77,8 @@ class BertNLIDatasetReader(DatasetReader):
 			attention_mask += padding
 			token_type_ids += padding
 
-		metadata = {'premise': premise, 'hypothesis': hypothesis, 
+		metadata = {'premise': premise, 
+					'hypothesis': hypothesis, 
 					'premise_tokens': premise_tokens,
 					'hypothesis_tokens': hypothesis_tokens,
 					'label': label, 'tag': tag}
@@ -98,6 +99,7 @@ class BertNLIDatasetReader(DatasetReader):
 		# one token at a time. This makes more sense than truncating an equal percent
 		# of tokens from each, since if one sequence is very short then each token
 		# that's truncated likely contains more information than a longer sequence.
+		# This code is taken from the HuggingFace library.
 
 		num_special_tokens = 3 if self.tokenizer_class == 'bert' else 4
 		max_length = self.max_seq_length - num_special_tokens

@@ -10,7 +10,7 @@
 		"lazy": false,
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
-		"max_premise_length": 80,
+		"max_hypothesis_length": 80,
 	},
 	"model": {
 		"type": "gnli",

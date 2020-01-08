@@ -1,3 +1,20 @@
+""" A script that takes the raw datasets and processes them into a unified JSONL file format.
+
+Each datapoint is processed into a dictionary with the form:
+
+	{
+		'premise': the premise in string form,
+		'hypothesis': the hypothesis in string form,
+		'label': the label in string form. The label can be entailment, contradiction or neutral. 
+			Some datasets only have two classes. The labels for these datasets are entailment or non-entailment.
+		'tag': A metadata field. This is used in datasets like HANS or Bizarro, where there are subcategories
+			we may be interested in seeing acuracy results for. E.g. in Bizzarro, there is revised-premise and
+			revised-hypothesis.
+	}
+
+The data is written out in `data/<dataset_name>/`.
+"""
+
 import csv
 from jsonlines import Reader
 import json

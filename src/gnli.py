@@ -14,10 +14,12 @@ from allennlp.modules.feedforward import FeedForward
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
+from allennlp.training.metrics.average import Average
 from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
+import random
 @Model.register("gnli")
 class GNLI(Model):
 	"""	
@@ -52,9 +54,11 @@ class GNLI(Model):
 
 		# Ignore padding indices when calculating generative loss.
 		self._generative_loss_fn = torch.nn.CrossEntropyLoss(ignore_index=1)
-		self._discriminative_loss_fn = torch.nn.CrossEntropyLoss()
+		self._discriminative_loss_fn = torch.nn.NLLLoss()
 		self._discriminative_loss_weight = discriminative_loss_weight
-		self.metrics = {'accuracy': CategoricalAccuracy()}
+		self.metrics = {'accuracy': CategoricalAccuracy(), 
+						'generative_loss': Average(), 
+						'discriminative_loss': Average()}
 
 		initializer(self)
 		number_params = sum([numpy.prod(p.size()) for p in list(self.parameters()) if p.requires_grad])
@@ -90,7 +94,7 @@ class GNLI(Model):
 				src_lengths: torch.Tensor, 			# src_lengths.size() 		= [batch_size, 3]
 				prev_output_tokens: torch.Tensor, 	# prev_output_tokens.size() = [batch_size, 3, hypothesis_length]
 				target: torch.Tensor,				# target.size() 			= [batch_size, hypothesis_length]	
-				target_lengths: torch.Tensor, 		# target_lengths.size()		= [batch_size, 3]
+				target_lengths: torch.Tensor, 		# target_lengths.size()		= [batch_size]
 				label: torch.Tensor = None,	 		# label.size() 				= [batch_size]
 				metadata = None):
 		batch_size, num_classes, premise_length = src.size()
@@ -125,17 +129,30 @@ class GNLI(Model):
 		target_decoder_probabilties = torch.gather(decoder_probabilties, dim=-1, index=target_expanded).squeeze(-1)
 
 		## Calculate the logits for the classes.
+		# Add a small amount to each class logit since we directly calculate the probs from it and
+		# if all logits are 0, we will get 0's in the loss function.
 		# class_logits.size() = [batch_size, 3]
-		class_logits = self.calculate_class_logits(target_decoder_probabilties, target_lengths)
+		class_logits = 1e-8 + self.calculate_class_logits(target_decoder_probabilties, target_lengths)
+
+		class_logits_sum = torch.sum(class_logits, dim=-1)
+		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, num_classes)
+
+		# Calculate the class probabilities as the class logits divided by the sum of the other class logits
+		class_probabilities = class_logits/class_logits_sum
 
 		output_dict = {'target_decoder_probabilities': target_decoder_probabilties,
 					   'class_logits': class_logits,
-					   'class_probabilities': torch.nn.functional.softmax(class_logits, dim=-1),
+					   'class_probabilities': class_probabilities,
 					   'predicted_label': torch.max(class_logits, dim=-1)[1],
 					   'target': target,
 					   'target_lengths': target_lengths,
 					   'metadata': metadata}
-
+		
+		# if random.random() < 0.025:
+			# print('\tprob', class_probabilities.tolist())
+			# print('\tlogit', class_logits.tolist()[0])
+			# print('\tlabel', label.tolist())
+			
 		if label is not None:		
 			label = label.long()
 			target = target.long()
@@ -144,13 +161,15 @@ class GNLI(Model):
 			self.metrics['accuracy'](class_logits, label)
 			
 			###### Discriminative Loss ######
-			discriminative_loss = self._discriminative_loss_fn(class_logits, label)
+			# Discriminative loss is the negative log likelihood over the log of the class probabilities
+			discriminative_loss = self._discriminative_loss_fn(torch.log(class_probabilities), label)
 			output_dict['discriminative_loss'] = discriminative_loss
-			
+			self.metrics['discriminative_loss'](discriminative_loss.item())
+
 			###### Generative Loss ######
 
 			# Extract from the decoder logits the logits over the correct class
-			# Expand the labels to match the # of dimension of the decoder logits
+			# Expand the labels to match the # of dimensions of the decoder logits
 			# label_expanded.size() = [batch_size, 1, hypothesis_length, vocab_size]
 			label_expanded = label.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).repeat(1, 1, hypothesis_length, self.vocab_size)
 			# correct_class_decoder_logits.size() = [batch_size, hypothesis_length, vocab_size]
@@ -163,9 +182,15 @@ class GNLI(Model):
 
 			generative_loss = self._generative_loss_fn(correct_class_decoder_logits, target)
 			output_dict['generative_loss'] = generative_loss
+			self.metrics['generative_loss'](generative_loss.item())
 
 			###### Mix the disciminative and generative losses via an affine combination ######
-			output_dict['loss'] = self._discriminative_loss_weight*discriminative_loss + (1-self._discriminative_loss_weight)*generative_loss
+			if self._discriminative_loss_weight == 0:
+				output_dict['loss'] = generative_loss
+			elif self._discriminative_loss_weight == 1:
+				output_dict['loss'] = discriminative_loss
+			else:
+				output_dict['loss'] = self._discriminative_loss_weight*discriminative_loss + (1-self._discriminative_loss_weight)*generative_loss
 
 		return output_dict
 
@@ -177,7 +202,8 @@ class GNLI(Model):
 		p(hypothesis | premise, class ) is treated as the logit for that class.
 		
 		HOWEVER, we cannot calculate p(hypothesis | .) directly, since continually multiplying
-		probabilties will quickly results in underflow.
+		probabilties will quickly results in underflow. Even if it doesn't result in underflow, 
+		doing a softmax on logits that are very small basically results in a uniform distributions.
 		
 		WE SOLVE THIS PROBLEM IN A HACKY WAY. 
 
@@ -200,37 +226,40 @@ class GNLI(Model):
 		Thus, we iterate through each token and multiply its probability 
 		by 10 to the negative base10 of its probability while that amount we multiply by has not exceeded 
 		`10**min_base10_factor`. This ensures that at the end we have multiplied by our constant while
-		preventing overflow.
+		preventing overflow and keeping the resulting softmax distribution sharp.
 		
 		The resulting logits preseve the probabilites when passed through a softmax function.
 		"""
 		batch_size, num_classes, _ = hypothesis_probabilities.size()
-		
+
 		# Initialize logits as all 1's. We will multiply by the target token probs.
 		class_logits = torch.ones(batch_size, num_classes)
+		class_logits = class_logits.type_as(hypothesis_probabilities)
 		
 		# Each data point has a different # of hypothesis tokens so handle so data point iteratively
 		for batch_entry in range(batch_size):
-			target_len = target_lengths[batch_entry]
+			target_len = target_lengths[batch_entry].item()
 			
 			# This is the smallest (negative) base 10 of p(h| premise, label) for this batch entry across all labels.
-			min_base10_factor = torch.min(torch.sum(torch.ceil(-1*torch.log10(hypothesis_probabilities[batch_entry, :, :target_len])), dim=-1)).item()
-			
+			base10_factors = torch.sum(torch.floor(-1*torch.log2(hypothesis_probabilities[batch_entry, :, :target_len])), dim=-1)
+			min_base10_factor = torch.min(base10_factors).item()
+
 			for label_entry in range(num_classes):
 				multiplicative_factor = min_base10_factor
 				
 				for hypothesis_entry in range(target_len):
 					cur_token_prob = hypothesis_probabilities[batch_entry, label_entry, hypothesis_entry]
 					
-					cur_base10_factor = math.ceil(math.log10(cur_token_prob.item())*-1)
+					cur_base10_factor = torch.floor(-1*torch.log2(cur_token_prob)).item()
 					cur_base10_factor = min(cur_base10_factor, multiplicative_factor)
-					
+
 					# Multiply current hypothesis token probability by its negative base10 value to prevent underflow
-					class_logits[batch_entry, label_entry] *= cur_token_prob*(10**cur_base10_factor)
+					class_logits[batch_entry, label_entry] *= cur_token_prob*(2**cur_base10_factor)
 
 					multiplicative_factor -= cur_base10_factor
 				
 				# Check that we have multiplied the label logit by `10**min_base10_factor`
+				# print(multiplicative_factor)
 				assert multiplicative_factor == 0
 		return class_logits
 

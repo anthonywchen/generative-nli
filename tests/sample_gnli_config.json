@@ -1,0 +1,36 @@
+{	
+	"random_seed": 42,
+	"pytorch_seed": 42,
+	"numpy_seed": 42,
+	"train_data_path": "data/snli/train.jsonl" ,
+	"validation_data_path": "data/snli/dev.jsonl" ,
+	"datasets_for_vocab_creation": [],
+	"dataset_reader": {
+		"type": "gnli",
+		"lazy": false,
+		"pretrained_model": "roberta-large",
+		"max_premise_length": 128,
+		"max_hypothesis_length": 80,
+		"percent_data": 0.001,
+	},
+	"model": {
+		"type": "gnli",
+		"pretrained_model": "bart.large",
+		"discriminative_loss_weight": 0,
+	},
+	"iterator": {
+		"type": "basic",
+		"batch_size" : 16,
+	},
+	"trainer": {
+		"cuda_device": 0,
+		"num_epochs": 10,
+		"num_serialized_models_to_keep": 0,
+		"warmup_proportion": 0.1,
+		"optimizer": {
+			"type": "adamw",
+			"lr": 1e-5,
+			"betas": [0.9, 0.999],
+		},
+	},
+}
