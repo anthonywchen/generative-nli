@@ -31,6 +31,7 @@ It should be noted that the trainer I use in the configs is `src/apex_trainer.py
 I should also note that I didn't use the official GLUE evaluation script so its possible (?) that I could have a bug in computing these dev scores. But I don't think I messed this up....
 
 Here are the results I got using the configs in `configs/` across three runs. 
+
 | Model | My Results on MNLI Matched Dev | Official Results on MNLI Matched Dev |
 | ------------- |:-------------:| :-----:|
 | bert-base      | 84.5 ± 0.2 | 84.4 |
