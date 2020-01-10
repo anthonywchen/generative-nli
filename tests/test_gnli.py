@@ -40,6 +40,7 @@ class Tests(AllenNlpTestCase):
 
 		config = Params.from_file('tests/sample_gnli_config.json')
 		config.params['trainer']['accumulation_steps'] = 2
+		config.params['model']['discriminative_loss_weight'] = 1
 		output_directory = 'tests/gnli'
 		if isdir(output_directory): 
 			shutil.rmtree(output_directory)

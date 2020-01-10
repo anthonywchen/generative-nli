@@ -57,7 +57,7 @@ class GNLI(Model):
 		self._extend_embeddings()
 
 		# Ignore padding indices when calculating generative loss.
-		self._generative_loss_fn = torch.nn.CrossEntropyLoss(ignore_index=1)
+		self._generative_loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self._bart.encoder.embed_tokens.padding_idx)
 		self._discriminative_loss_fn = torch.nn.NLLLoss()
 		self._discriminative_loss_weight = discriminative_loss_weight
 		self.metrics = {'accuracy': CategoricalAccuracy(), 
@@ -123,24 +123,26 @@ class GNLI(Model):
 		# Expand size of target to match the # of dimensions of `decoder_probabilties`.
 		# target_expanded.size() = [batch_size, 3, hypothesis_length, 1]
 		target_expanded = target.unsqueeze(1).repeat(1, num_classes, 1).unsqueeze(-1)
+		assert list(target_expanded.size()) == [batch_size, num_classes, hypothesis_length, 1]
 
 		# Grab the probabilities of the target tokens.
 		# target_decoder_probabilties.size() = [batch_size, 3, hypothesis_length]
 		target_decoder_probabilties = torch.gather(decoder_probabilties, dim=-1, index=target_expanded).squeeze(-1)
+		assert list(target_decoder_probabilties.size()) == [batch_size, num_classes, hypothesis_length]
 
 		## Calculate the logits for the classes.
 		# Add a small amount to each class logit since we directly calculate the probs from it and
 		# if all logits are 0, we will get 0's in the loss function.
 		# class_logits.size() = [batch_size, 3]
 		class_logits = 1e-8 + self.calculate_class_logits(target_decoder_probabilties, target_lengths)
-
 		class_logits_sum = torch.sum(class_logits, dim=-1)
 		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, num_classes)
 
 		# Calculate the class probabilities as the class logits divided by the sum of the other class logits
 		class_probabilities = class_logits/class_logits_sum
 
-		output_dict = {'target_decoder_probabilities': target_decoder_probabilties,
+		output_dict = {'decoder_probabilties': decoder_probabilties,
+					   'target_decoder_probabilities': target_decoder_probabilties,
 					   'class_logits': class_logits,
 					   'class_probabilities': class_probabilities,
 					   'predicted_label': torch.max(class_logits, dim=-1)[1],
@@ -148,10 +150,10 @@ class GNLI(Model):
 					   'target_lengths': target_lengths,
 					   'metadata': metadata}
 		
-		# if random.random() < 0.01:
-			# print('\tprob', class_probabilities.tolist())
-			# print('\tlogit', class_logits.tolist()[0])
-			# print('\tlabel', label.tolist())
+		if random.random() < 0.01:
+			print('\tprob', class_probabilities.tolist())
+			print('\tlogit', class_logits.tolist()[0])
+			print('\tlabel', label.tolist())
 			
 		if label is not None:		
 			label = label.long()
@@ -161,27 +163,28 @@ class GNLI(Model):
 			self.metrics['accuracy'](class_logits, label)
 			
 			###### Discriminative Loss ######
-			# Discriminative loss is the negative log likelihood over the log of the class probabilities
+			# Discriminative loss is the negative log likelihood over the class probabilities
 			discriminative_loss = self._discriminative_loss_fn(torch.log(class_probabilities), label)
-			output_dict['discriminative_loss'] = discriminative_loss
+			output_dict['discriminative_loss'] = discriminative_loss.item()
 			self.metrics['discriminative_loss'](discriminative_loss.item())
 
 			###### Generative Loss ######
-
 			# Extract from the decoder logits the logits over the correct class
 			# Expand the labels to match the # of dimensions of the decoder logits
 			# label_expanded.size() = [batch_size, 1, hypothesis_length, vocab_size]
 			label_expanded = label.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).repeat(1, 1, hypothesis_length, self.vocab_size)
+			assert list(label_expanded.size()) == [batch_size, 1, hypothesis_length, self.vocab_size]
 			# correct_class_decoder_logits.size() = [batch_size, hypothesis_length, vocab_size]
 			correct_class_decoder_logits = torch.gather(decoder_logits, dim=1, index=label_expanded).squeeze(1)
+			assert list(correct_class_decoder_logits.size()) == [batch_size, hypothesis_length, self.vocab_size]
 
 			# Resize the correct class decoder logits and the targets to be 2D and 1D respectively
 			# before calculating the generative loss since CrossEntropyLoss() expects these dimensions.
-			correct_class_decoder_logits = correct_class_decoder_logits.resize(batch_size*hypothesis_length, self.vocab_size)
-			target = target.resize(batch_size*hypothesis_length)
+			correct_class_decoder_logits_resized = correct_class_decoder_logits.resize(batch_size*hypothesis_length, self.vocab_size)
+			target_resized = target.resize(batch_size*hypothesis_length)
 
-			generative_loss = self._generative_loss_fn(correct_class_decoder_logits, target)
-			output_dict['generative_loss'] = generative_loss
+			generative_loss = self._generative_loss_fn(correct_class_decoder_logits_resized, target_resized)
+			output_dict['generative_loss'] = generative_loss.item()
 			self.metrics['generative_loss'](generative_loss.item())
 
 			###### Mix the disciminative and generative losses via an affine combination ######
@@ -241,7 +244,7 @@ class GNLI(Model):
 			target_len = target_lengths[batch_entry].item()
 			
 			# This is the smallest (negative) base 10 of p(h| premise, label) for this batch entry across all labels.
-			base10_factors = torch.sum(torch.floor(-1*torch.log2(hypothesis_probabilities[batch_entry, :, :target_len])), dim=-1)
+			base10_factors = torch.sum(torch.floor(-1*torch.log10(hypothesis_probabilities[batch_entry, :, :target_len])), dim=-1)
 			min_base10_factor = torch.min(base10_factors).item()
 
 			for label_entry in range(num_classes):
@@ -250,11 +253,11 @@ class GNLI(Model):
 				for hypothesis_entry in range(target_len):
 					cur_token_prob = hypothesis_probabilities[batch_entry, label_entry, hypothesis_entry]
 					
-					cur_base10_factor = torch.floor(-1*torch.log2(cur_token_prob)).item()
+					cur_base10_factor = torch.floor(-1*torch.log10(cur_token_prob)).item()
 					cur_base10_factor = min(cur_base10_factor, multiplicative_factor)
 
 					# Multiply current hypothesis token probability by its negative base10 value to prevent underflow
-					class_logits[batch_entry, label_entry] *= cur_token_prob*(2**cur_base10_factor)
+					class_logits[batch_entry, label_entry] *= cur_token_prob*(10**cur_base10_factor)
 
 					multiplicative_factor -= cur_base10_factor
 				
