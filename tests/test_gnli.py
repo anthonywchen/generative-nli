@@ -30,40 +30,40 @@ class Tests(AllenNlpTestCase):
 		random.seed(0)
 		torch.manual_seed(0)
 
-	# def test_gnli_training(self):
-	# 	""" 
-	# 	Tests that we can run a training run, and 
-	# 	record the output scores so that we can always check back 
-	# 	"""
-	# 	print('\ntest_training\n')
-	# 	self.set_seed()
-
-	# 	config = Params.from_file('tests/sample_gnli_config.json')
-	# 	config.params['trainer']['accumulation_steps'] = 2
-	# 	output_directory = 'tests/gnli'
-	# 	if isdir(output_directory): 
-	# 		shutil.rmtree(output_directory)
-
-	# 	trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-	# 	trainer.train()
-
-	def test_gnli_training_with_disc_loss(self):
+	def test_gnli_training(self):
 		""" 
 		Tests that we can run a training run, and 
 		record the output scores so that we can always check back 
 		"""
-		print('\ntest_gnli_training_with_disc_loss\n')
+		print('\ntest_training\n')
 		self.set_seed()
 
 		config = Params.from_file('tests/sample_gnli_config.json')
 		config.params['trainer']['accumulation_steps'] = 2
-		config.params['model']['discriminative_loss_weight'] = .5
-		output_directory = 'tests/gnli_with_disc'
+		output_directory = 'tests/gnli'
 		if isdir(output_directory): 
 			shutil.rmtree(output_directory)
 
 		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
 		trainer.train()
+
+	# def test_gnli_training_with_disc_loss(self):
+	# 	""" 
+	# 	Tests that we can run a training run, and 
+	# 	record the output scores so that we can always check back 
+	# 	"""
+	# 	print('\ntest_gnli_training_with_disc_loss\n')
+	# 	self.set_seed()
+
+	# 	config = Params.from_file('tests/sample_gnli_config.json')
+	# 	config.params['trainer']['accumulation_steps'] = 2
+	# 	config.params['model']['discriminative_loss_weight'] = .5
+	# 	output_directory = 'tests/gnli_with_disc'
+	# 	if isdir(output_directory): 
+	# 		shutil.rmtree(output_directory)
+
+	# 	trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
+	# 	trainer.train()
 
 	def test_half_prec_grad_accum(self):
 		""" 

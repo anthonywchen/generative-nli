@@ -38,6 +38,10 @@ class GNLI(Model):
 	vocab: ``Vocabulary`` 
 		A vocabulary file that should be empty, since BART has its own vocabulary.
 	"""
+	@property
+	def vocab_size(self):
+		return self._bart.encoder.embed_tokens.num_embeddings
+
 	def __init__(self, 
 				 pretrained_model: str,
 				 discriminative_loss_weight: float = 0,
@@ -75,7 +79,7 @@ class GNLI(Model):
 
 		# Build new embeddings and copy the word embeddings from the previous weights
 		new_num_tokens = old_num_tokens + 3
-		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim)
+		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim, padding_idx=old_embeddings.padding_idx)
 		new_embeddings.to(old_embeddings.weight.device)
 		new_embeddings.weight.data[:old_num_tokens, :] = old_embeddings.weight.data[:old_num_tokens, :]
 
@@ -83,10 +87,6 @@ class GNLI(Model):
 		self._bart.encoder.embed_tokens = new_embeddings
 		self._bart.decoder.embed_tokens = self._bart.encoder.embed_tokens
 		assert self._bart.decoder.embed_tokens == self._bart.encoder.embed_tokens
-
-	@property
-	def vocab_size(self):
-		return self._bart.encoder.embed_tokens.num_embeddings
 
 	@overrides
 	def forward(self, 
@@ -102,14 +102,14 @@ class GNLI(Model):
 		assert num_classes == 3
 
 		## Before feeding tensors through BART, merge the batch size and number of classes dimensions
-		src = src.resize(batch_size*num_classes, premise_length)
-		src_lengths = src_lengths.resize(batch_size*num_classes)
-		prev_output_tokens = prev_output_tokens.resize(batch_size*num_classes, hypothesis_length)
+		src_resized = src.resize(batch_size*num_classes, premise_length)
+		src_lengths_resized = src_lengths.resize(batch_size*num_classes)
+		prev_output_tokens_resized = prev_output_tokens.resize(batch_size*num_classes, hypothesis_length)
 		
 		## Feed tensors through BART model, which returns the logits from the decoder.
 		# A set of logits is returned for each token in `prev_output_tokens` over the vocabulary.
 		# decoder_logits.size() = [batch_size*3, hypothesis_length, vocab_size]
-		decoder_logits, _ = self._bart(src_tokens=src, src_lengths=src_lengths, prev_output_tokens=prev_output_tokens)
+		decoder_logits, _ = self._bart(src_tokens=src_resized, src_lengths=src_lengths_resized, prev_output_tokens=prev_output_tokens_resized)
 		decoder_logits = decoder_logits.resize(batch_size, num_classes, hypothesis_length, self.vocab_size)
 
 		## Calculate the probability at each decoder timestep of seeing the next hypothesis token (i.e. the target token).
@@ -148,7 +148,7 @@ class GNLI(Model):
 					   'target_lengths': target_lengths,
 					   'metadata': metadata}
 		
-		# if random.random() < 0.025:
+		# if random.random() < 0.01:
 			# print('\tprob', class_probabilities.tolist())
 			# print('\tlogit', class_logits.tolist()[0])
 			# print('\tlabel', label.tolist())

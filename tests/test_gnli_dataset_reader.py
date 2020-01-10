@@ -4,6 +4,7 @@ from jsonlines import Reader
 import logging
 from pytorch_transformers import RobertaTokenizer
 import random
+from tqdm import tqdm
 
 from src.gnli_dataset_reader import GNLIDatasetReader
 from src.gnli_tokenizer import GNLITokenizer
@@ -20,10 +21,11 @@ class Tests(AllenNlpTestCase):
 		roberta_tokenizer = RobertaTokenizer.from_pretrained('roberta-large')
 		gnli_tokenizer = GNLITokenizer.from_pretrained('roberta-large')
 
-		for line in Reader(open('data/mnli/dev.jsonl')):
+		for line in tqdm(Reader(open('data/mnli/dev.jsonl'))):
 			premise = line['premise'].strip()
+			hypothesis = line['hypothesis'].strip()
 			assert roberta_tokenizer.tokenize(premise) == gnli_tokenizer.tokenize(premise)
-			assert roberta_tokenizer.tokenize(premise) == gnli_tokenizer.tokenize(premise)
+			assert roberta_tokenizer.tokenize(hypothesis) == gnli_tokenizer.tokenize(hypothesis)
 
 		# Test that the label tokens and ids were set correctly
 		entail_token = gnli_tokenizer.entail_token
@@ -48,8 +50,7 @@ class Tests(AllenNlpTestCase):
 		tokenizer = GNLITokenizer.from_pretrained('roberta-large')
 		max_premise_length = 128
 		max_hypothesis_length = 80
-		reader = GNLIDatasetReader('roberta-large', max_premise_length=max_premise_length,
-								   max_hypothesis_length=max_hypothesis_length, percent_data=0.001)
+		reader = GNLIDatasetReader('roberta-large', max_premise_length=max_premise_length, max_hypothesis_length=max_hypothesis_length)
 
 		for instance in reader.read('data/mnli/train.jsonl'):
 			target = instance['target'].array.tolist()
@@ -67,7 +68,6 @@ class Tests(AllenNlpTestCase):
 				# Test encoder and decoder inputs are at max length
 				assert len(src) == max_premise_length
 				assert len(target) == len(prev_output_tokens) == max_hypothesis_length
-
 				assert len(premise_tokens) == src_length - 3
 				assert len(hypothesis_tokens) == target_length - 2
 
