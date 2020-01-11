@@ -57,7 +57,7 @@ class GNLI(Model):
 		self._extend_embeddings()
 
 		# Ignore padding indices when calculating generative loss.
-		self._generative_loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self._bart.encoder.embed_tokens.padding_idx)
+		self._generative_loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self._bart.encoder.padding_idx)
 		self._discriminative_loss_fn = torch.nn.NLLLoss()
 		self._discriminative_loss_weight = discriminative_loss_weight
 		self.metrics = {'accuracy': CategoricalAccuracy(), 
@@ -134,7 +134,7 @@ class GNLI(Model):
 		# Add a small amount to each class logit since we directly calculate the probs from it and
 		# if all logits are 0, we will get 0's in the loss function.
 		# class_logits.size() = [batch_size, 3]
-		class_logits = 1e-8 + self.calculate_class_logits(target_decoder_probabilties, target_lengths)
+		class_logits = 1e-15 + self.calculate_class_logits(target_decoder_probabilties, target_lengths)
 		class_logits_sum = torch.sum(class_logits, dim=-1)
 		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, num_classes)
 
@@ -152,7 +152,7 @@ class GNLI(Model):
 		
 		if random.random() < 0.01:
 			print('\tprob', class_probabilities.tolist())
-			print('\tlogit', class_logits.tolist()[0])
+			print('\tlogit', class_logits.tolist())
 			print('\tlabel', label.tolist())
 			
 		if label is not None:		
@@ -197,7 +197,7 @@ class GNLI(Model):
 
 		return output_dict
 
-	def calculate_class_logits(self, hypothesis_probabilities, target_lengths):
+	def old_calculate_class_logits(self, hypothesis_probabilities, target_lengths):
 		""" Calculates the class logits from the probabilties of the hypothesis tokens.
 		
 		Essentially, this calculates p(hypothesis | premise, class) for the three classes
@@ -264,6 +264,32 @@ class GNLI(Model):
 				# Check that we have multiplied the label logit by `10**min_base10_factor`
 				# print(multiplicative_factor)
 				assert multiplicative_factor == 0
+		return class_logits
+
+	def calculate_class_logits(self, hypothesis_probabilities, target_lengths):
+		""" Calculates the class logits from the probabilties of the hypothesis tokens.
+		
+		Essentially, this calculates p(hypothesis | premise, class) for the three classes
+		by calculating the autoregressive probability over the hypothesis tokens. 
+		p(hypothesis | premise, class ) is treated as the logit for that class.
+		"""
+		batch_size, num_classes, _ = hypothesis_probabilities.size()
+		log_hypothesis_probabilities = torch.log(hypothesis_probabilities)
+
+		# Sum the probabiltiies of the hypothesis tokens up to the length of the hypothesis (without padding)
+		log_class_logits = torch.zeros(batch_size, num_classes)
+		log_class_logits = log_class_logits.type_as(hypothesis_probabilities)
+
+		for batch_entry in range(batch_size):
+			cur_target_len = target_lengths[batch_entry].item()
+			log_class_logits[batch_entry] = torch.sum(log_hypothesis_probabilities[batch_entry, :, :cur_target_len], dim=-1)
+			
+		# scaling.size() = [batch_size]
+		scaling = torch.max(log_class_logits, dim=-1)[0]
+		scaling = scaling.unsqueeze(-1).repeat(1, num_classes)
+		log_class_logits -= scaling
+
+		class_logits = torch.exp(log_class_logits)
 		return class_logits
 
 	@overrides

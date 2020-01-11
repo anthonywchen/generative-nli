@@ -50,7 +50,7 @@ class Tests(AllenNlpTestCase):
 		tokenizer = GNLITokenizer.from_pretrained('roberta-large')
 		max_premise_length = 128
 		max_hypothesis_length = 80
-		reader = GNLIDatasetReader('roberta-large', max_premise_length=max_premise_length, max_hypothesis_length=max_hypothesis_length)
+		reader = GNLIDatasetReader('roberta-large', max_premise_length=max_premise_length, max_hypothesis_length=max_hypothesis_length, percent_data=0.25)
 
 		for instance in reader.read('data/mnli/train.jsonl'):
 			target = instance['target'].array.tolist()
@@ -77,6 +77,7 @@ class Tests(AllenNlpTestCase):
 				assert tokenizer.convert_tokens_to_ids(['<s>'] + [cur_class_token] + premise_tokens + ['</s>']) == src[:src_length]
 				assert tokenizer.convert_tokens_to_ids(['</s>', '<s>'] + hypothesis_tokens) == prev_output_tokens[:target_length]
 				assert tokenizer.convert_tokens_to_ids(['<s>'] + hypothesis_tokens + ['</s>']) == target[:target_length]
+				assert target[:target_length] == prev_output_tokens[1:target_length] + [tokenizer.eos_token_id]
 
 				# Check padding
 				assert tokenizer.convert_tokens_to_ids(['<pad>']*(max_premise_length-src_length)) == src[src_length:]
