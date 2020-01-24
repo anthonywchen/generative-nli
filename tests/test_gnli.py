@@ -30,53 +30,27 @@ class Tests(AllenNlpTestCase):
 		random.seed(0)
 		torch.manual_seed(0)
 
-	def test_gnli_training_with_gen_loss(self):
+	def test_gnli_training_dual_loss(self):
 		""" 
 		Tests that we can run a training run, and 
 		record the output scores so that we can always check back 
 		"""
-		print('\ntest_training_gen\n')
+		print('\ntest_gnli_dual\n')
 		self.set_seed()
 
 		config = Params.from_file('tests/sample_gnli_config.json')
-		config.params['model']['discriminative_loss_weight'] = 0
-		output_directory = 'tests/gnli_gen'
+		config.params['model']['discriminative_loss_weight'] = .5
+		output_directory = 'tests/gnli'
 		if isdir(output_directory): 
 			shutil.rmtree(output_directory)
 
 		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
 		trainer.train()
 
-	# def test_gnli_training_with_disc_loss(self):
-	# 	""" 
-	# 	Tests that we can run a training run, and 
-	# 	record the output scores so that we can always check back 
-	# 	"""
-	# 	print('\ntest_gnli_disc\n')
-	# 	self.set_seed()
-
-	# 	config = Params.from_file('tests/sample_gnli_config.json')
-	# 	config.params['model']['discriminative_loss_weight'] = 1
-	# 	output_directory = 'tests/gnli_disc'
-	# 	if isdir(output_directory): 
-	# 		shutil.rmtree(output_directory)
-
-	# 	trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-	# 	trainer.train()
-
-	# def test_gnli_training_dual_loss(self):
-	# 	""" 
-	# 	Tests that we can run a training run, and 
-	# 	record the output scores so that we can always check back 
-	# 	"""
-	# 	print('\ntest_gnli_dual\n')
-	# 	self.set_seed()
-
-	# 	config = Params.from_file('tests/sample_gnli_config.json')
-	# 	config.params['model']['discriminative_loss_weight'] = .5
-	# 	output_directory = 'tests/gnli'
-	# 	if isdir(output_directory): 
-	# 		shutil.rmtree(output_directory)
-
-	# 	trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-	# 	trainer.train()
+		# Check that final metrics are correct. This can be useful since different versions 
+		# sometimes yield different results and this can potentially reveal this discrepency. 
+		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_19.json')))
+		assert isclose(final_metrics['training_accuracy'], 0.7872727272727272, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_loss'], 1.0372580289840698, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.7, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 1.4115259647369385, abs_tol=ABS_TOL)
