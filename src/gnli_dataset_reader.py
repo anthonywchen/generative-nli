@@ -1,5 +1,6 @@
 from jsonlines import Reader
 import logging
+import math
 import numpy as np
 from overrides import overrides
 import random
@@ -39,7 +40,7 @@ class GNLIDatasetReader(DatasetReader):
 			lines = [line for line in Reader(f)]
 
 		# Determine how many lines we will use as a percent of the data
-		num_lines_to_use = int(len(lines)*self.percent_data)
+		num_lines_to_use = math.ceil((len(lines)*self.percent_data))
 		logger.info('Number of data points: %d', num_lines_to_use)
 
 		if self.percent_data < 1:

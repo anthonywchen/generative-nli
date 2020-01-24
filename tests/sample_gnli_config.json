@@ -1,7 +1,4 @@
 {	
-	"random_seed": 42,
-	"pytorch_seed": 42,
-	"numpy_seed": 42,
 	"train_data_path": "data/snli/train.jsonl" ,
 	"validation_data_path": "data/snli/dev.jsonl" ,
 	"datasets_for_vocab_creation": [],
@@ -24,9 +21,10 @@
 	},
 	"trainer": {
 		"cuda_device": 0,
-		"num_epochs": 6,
+		"num_epochs": 4,
 		"num_serialized_models_to_keep": 0,
-		"warmup_proportion": 0.1,
+		"accumulation_steps": 2,
+		// "warmup_proportion": 0.1,
 		"optimizer": {
 			"type": "adamw",
 			"lr": 1e-5,

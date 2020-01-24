@@ -61,8 +61,8 @@ class GNLI(Model):
 		self._discriminative_loss_fn = torch.nn.NLLLoss()
 		self._discriminative_loss_weight = discriminative_loss_weight
 		self.metrics = {'accuracy': CategoricalAccuracy(), 
-						'generative_loss': Average(), 
-						'discriminative_loss': Average()}
+						'gen_loss': Average(), 
+						'disc_loss': Average()}
 
 		initializer(self)
 		number_params = sum([numpy.prod(p.size()) for p in list(self.parameters()) if p.requires_grad])
@@ -111,7 +111,7 @@ class GNLI(Model):
 		# decoder_logits.size() = [batch_size*3, hypothesis_length, vocab_size]
 		decoder_logits, _ = self._bart(src_tokens=src_resized, src_lengths=src_lengths_resized, prev_output_tokens=prev_output_tokens_resized)
 		decoder_logits = decoder_logits.resize(batch_size, num_classes, hypothesis_length, self.vocab_size)
-
+		
 		## Calculate the probability at each decoder timestep of seeing the next hypothesis token (i.e. the target token).
 		# This is useful for visualizing what token most strongly influences the classification decision.
 		
@@ -123,18 +123,19 @@ class GNLI(Model):
 		# Expand size of target to match the # of dimensions of `decoder_probabilties`.
 		# target_expanded.size() = [batch_size, 3, hypothesis_length, 1]
 		target_expanded = target.unsqueeze(1).repeat(1, num_classes, 1).unsqueeze(-1)
-		assert list(target_expanded.size()) == [batch_size, num_classes, hypothesis_length, 1]
+		assert target_expanded.size() == (batch_size, num_classes, hypothesis_length, 1)
 
 		# Grab the probabilities of the target tokens.
 		# target_decoder_probabilties.size() = [batch_size, 3, hypothesis_length]
 		target_decoder_probabilties = torch.gather(decoder_probabilties, dim=-1, index=target_expanded).squeeze(-1)
-		assert list(target_decoder_probabilties.size()) == [batch_size, num_classes, hypothesis_length]
+		assert target_decoder_probabilties.size() == (batch_size, num_classes, hypothesis_length)
 
 		## Calculate the logits for the classes.
 		# Add a small amount to each class logit since we directly calculate the probs from it and
 		# if all logits are 0, we will get 0's in the loss function.
 		# class_logits.size() = [batch_size, 3]
-		class_logits = 1e-15 + self.calculate_class_logits(target_decoder_probabilties, target_lengths)
+		class_logits, log_class_logits = self.calculate_class_logits(target_decoder_probabilties, target_lengths)
+		class_logits += 1e-15
 		class_logits_sum = torch.sum(class_logits, dim=-1)
 		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, num_classes)
 
@@ -149,11 +150,6 @@ class GNLI(Model):
 					   'target': target,
 					   'target_lengths': target_lengths,
 					   'metadata': metadata}
-		
-		if random.random() < 0.01:
-			print('\tprob', class_probabilities.tolist())
-			print('\tlogit', class_logits.tolist())
-			print('\tlabel', label.tolist())
 			
 		if label is not None:		
 			label = label.long()
@@ -164,9 +160,10 @@ class GNLI(Model):
 			
 			###### Discriminative Loss ######
 			# Discriminative loss is the negative log likelihood over the class probabilities
+			assert math.isclose(torch.sum(class_probabilities).item(), batch_size, abs_tol=1e-5)
 			discriminative_loss = self._discriminative_loss_fn(torch.log(class_probabilities), label)
-			output_dict['discriminative_loss'] = discriminative_loss.item()
-			self.metrics['discriminative_loss'](discriminative_loss.item())
+			output_dict['disc_loss'] = discriminative_loss.item()
+			self.metrics['disc_loss'](discriminative_loss.item())
 
 			###### Generative Loss ######
 			# Extract from the decoder logits the logits over the correct class
@@ -184,8 +181,8 @@ class GNLI(Model):
 			target_resized = target.resize(batch_size*hypothesis_length)
 
 			generative_loss = self._generative_loss_fn(correct_class_decoder_logits_resized, target_resized)
-			output_dict['generative_loss'] = generative_loss.item()
-			self.metrics['generative_loss'](generative_loss.item())
+			output_dict['gen_loss'] = generative_loss.item()
+			self.metrics['gen_loss'](generative_loss.item())
 
 			###### Mix the disciminative and generative losses via an affine combination ######
 			if self._discriminative_loss_weight == 0:
@@ -262,7 +259,6 @@ class GNLI(Model):
 					multiplicative_factor -= cur_base10_factor
 				
 				# Check that we have multiplied the label logit by `10**min_base10_factor`
-				# print(multiplicative_factor)
 				assert multiplicative_factor == 0
 		return class_logits
 
@@ -274,23 +270,22 @@ class GNLI(Model):
 		p(hypothesis | premise, class ) is treated as the logit for that class.
 		"""
 		batch_size, num_classes, _ = hypothesis_probabilities.size()
-		log_hypothesis_probabilities = torch.log(hypothesis_probabilities)
+		log_hypothesis_probabilities = torch.log10(hypothesis_probabilities)
 
 		# Sum the probabiltiies of the hypothesis tokens up to the length of the hypothesis (without padding)
-		log_class_logits = torch.zeros(batch_size, num_classes)
-		log_class_logits = log_class_logits.type_as(hypothesis_probabilities)
-
-		for batch_entry in range(batch_size):
-			cur_target_len = target_lengths[batch_entry].item()
-			log_class_logits[batch_entry] = torch.sum(log_hypothesis_probabilities[batch_entry, :, :cur_target_len], dim=-1)
+		hypothesis_mask = torch.zeros(hypothesis_probabilities.size()).type_as(hypothesis_probabilities)
+		for batch_entry, cur_target_len in enumerate(target_lengths):
+			hypothesis_mask[batch_entry, :, :cur_target_len.item()] = 1
 			
+		log_class_logits = torch.sum(log_hypothesis_probabilities*hypothesis_mask, dim=-1)
+
 		# scaling.size() = [batch_size]
 		scaling = torch.max(log_class_logits, dim=-1)[0]
 		scaling = scaling.unsqueeze(-1).repeat(1, num_classes)
-		log_class_logits -= scaling
+		log_class_logits = log_class_logits - scaling
 
-		class_logits = torch.exp(log_class_logits)
-		return class_logits
+		class_logits = 10**log_class_logits
+		return class_logits, log_class_logits
 
 	@overrides
 	def get_metrics(self, reset: bool = False) -> Dict[str, float]:
