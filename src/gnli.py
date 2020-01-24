@@ -1,16 +1,11 @@
-""" Natural langauge inference model wrapper for BERT and ROBERTA """
 import logging
 import math
 import numpy
 from overrides import overrides
-from pytorch_transformers import BertModel, RobertaModel
 import torch
-from torch.nn import CrossEntropyLoss
 from typing import Dict
 
 from allennlp.common import Params
-from allennlp.common.checks import ConfigurationError
-from allennlp.modules.feedforward import FeedForward
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
@@ -19,7 +14,6 @@ from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
-import random
 @Model.register("gnli")
 class GNLI(Model):
 	"""	
@@ -134,8 +128,7 @@ class GNLI(Model):
 		# Add a small amount to each class logit since we directly calculate the probs from it and
 		# if all logits are 0, we will get 0's in the loss function.
 		# class_logits.size() = [batch_size, 3]
-		class_logits, log_class_logits = self.calculate_class_logits(target_decoder_probabilties, target_lengths)
-		class_logits += 1e-15
+		class_logits = 1e-15 + self.calculate_class_logits(target_decoder_probabilties, target_lengths)
 		class_logits_sum = torch.sum(class_logits, dim=-1)
 		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, num_classes)
 
@@ -194,74 +187,6 @@ class GNLI(Model):
 
 		return output_dict
 
-	def old_calculate_class_logits(self, hypothesis_probabilities, target_lengths):
-		""" Calculates the class logits from the probabilties of the hypothesis tokens.
-		
-		Essentially, this calculates p(hypothesis | premise, class) for the three classes
-		by calculating the autoregressive probability over the hypothesis tokens. 
-		p(hypothesis | premise, class ) is treated as the logit for that class.
-		
-		HOWEVER, we cannot calculate p(hypothesis | .) directly, since continually multiplying
-		probabilties will quickly results in underflow. Even if it doesn't result in underflow, 
-		doing a softmax on logits that are very small basically results in a uniform distributions.
-		
-		WE SOLVE THIS PROBLEM IN A HACKY WAY. 
-
-		We rely on the fact that when calculating the softmax, multiplying
-		the inputs to the softmax by a constant will preserve the resulting probabilties. 
-
-		i.e. e^x_i / (e^x_1 + e^x_2 ... ) = e^(c*x_i) / (e^(c*x_1) + e^(c*x_2) ... )
-
-		We set this constant as ten to the negative base10 value of the largest 
-		probabiltiy would be for the classes if we did directly compute p(h | .) 
-		(`10**min_base10_factor`). 
-
-		i.e. largest_prob = argmax class' p(hypothesis | premise, class')
-			 min_base10_factor = -1 * ceil(log_base_10(largest_prob))
-			 constant = 10**min_base10_factor
-		
-		HOWEVER, we cannot use this constant directly, since it itself may result in an overflow if 
-		`min_base10_factor` is very large.
-		
-		Thus, we iterate through each token and multiply its probability 
-		by 10 to the negative base10 of its probability while that amount we multiply by has not exceeded 
-		`10**min_base10_factor`. This ensures that at the end we have multiplied by our constant while
-		preventing overflow and keeping the resulting softmax distribution sharp.
-		
-		The resulting logits preseve the probabilites when passed through a softmax function.
-		"""
-		batch_size, num_classes, _ = hypothesis_probabilities.size()
-
-		# Initialize logits as all 1's. We will multiply by the target token probs.
-		class_logits = torch.ones(batch_size, num_classes)
-		class_logits = class_logits.type_as(hypothesis_probabilities)
-		
-		# Each data point has a different # of hypothesis tokens so handle so data point iteratively
-		for batch_entry in range(batch_size):
-			target_len = target_lengths[batch_entry].item()
-			
-			# This is the smallest (negative) base 10 of p(h| premise, label) for this batch entry across all labels.
-			base10_factors = torch.sum(torch.floor(-1*torch.log10(hypothesis_probabilities[batch_entry, :, :target_len])), dim=-1)
-			min_base10_factor = torch.min(base10_factors).item()
-
-			for label_entry in range(num_classes):
-				multiplicative_factor = min_base10_factor
-				
-				for hypothesis_entry in range(target_len):
-					cur_token_prob = hypothesis_probabilities[batch_entry, label_entry, hypothesis_entry]
-					
-					cur_base10_factor = torch.floor(-1*torch.log10(cur_token_prob)).item()
-					cur_base10_factor = min(cur_base10_factor, multiplicative_factor)
-
-					# Multiply current hypothesis token probability by its negative base10 value to prevent underflow
-					class_logits[batch_entry, label_entry] *= cur_token_prob*(10**cur_base10_factor)
-
-					multiplicative_factor -= cur_base10_factor
-				
-				# Check that we have multiplied the label logit by `10**min_base10_factor`
-				assert multiplicative_factor == 0
-		return class_logits
-
 	def calculate_class_logits(self, hypothesis_probabilities, target_lengths):
 		""" Calculates the class logits from the probabilties of the hypothesis tokens.
 		
@@ -285,7 +210,7 @@ class GNLI(Model):
 		log_class_logits = log_class_logits - scaling
 
 		class_logits = 10**log_class_logits
-		return class_logits, log_class_logits
+		return class_logits
 
 	@overrides
 	def get_metrics(self, reset: bool = False) -> Dict[str, float]:

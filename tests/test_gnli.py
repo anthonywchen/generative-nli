@@ -35,7 +35,7 @@ class Tests(AllenNlpTestCase):
 		Tests that we can run a training run, and 
 		record the output scores so that we can always check back 
 		"""
-		print('\ntest_training_genn\n')
+		print('\ntest_training_gen\n')
 		self.set_seed()
 
 		config = Params.from_file('tests/sample_gnli_config.json')
