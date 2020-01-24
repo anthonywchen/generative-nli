@@ -21,10 +21,9 @@
 	},
 	"trainer": {
 		"cuda_device": 0,
-		"num_epochs": 4,
+		"num_epochs": 20,
 		"num_serialized_models_to_keep": 0,
 		"accumulation_steps": 2,
-		// "warmup_proportion": 0.1,
 		"optimizer": {
 			"type": "adamw",
 			"lr": 1e-5,
