@@ -36,6 +36,26 @@ class GNLI(Model):
 	def vocab_size(self):
 		return self._bart.encoder.embed_tokens.num_embeddings
 
+	def _extend_embeddings(self):
+		""" Extends the embeddings in the encoder and decoder by three for the 
+		class embeddings.
+
+		Code based on HuggingFace Transformer repository.
+		"""
+		old_embeddings = self._bart.encoder.embed_tokens
+		old_num_tokens, embedding_dim = old_embeddings.weight.size()
+
+		# Build new embeddings and copy the word embeddings from the previous weights
+		new_num_tokens = old_num_tokens + 3
+		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim, padding_idx=old_embeddings.padding_idx)
+		new_embeddings.to(old_embeddings.weight.device)
+		new_embeddings.weight.data[:old_num_tokens, :] = old_embeddings.weight.data[:old_num_tokens, :]
+
+		# Set the encoder to use the new embeddings and tie the encoder and decoder embeddings.
+		self._bart.encoder.embed_tokens = new_embeddings
+		self._bart.decoder.embed_tokens = self._bart.encoder.embed_tokens
+		assert self._bart.decoder.embed_tokens == self._bart.encoder.embed_tokens
+
 	def __init__(self, 
 				 pretrained_model: str,
 				 discriminative_loss_weight: float = 0,
@@ -62,26 +82,6 @@ class GNLI(Model):
 		number_params = sum([numpy.prod(p.size()) for p in list(self.parameters()) if p.requires_grad])
 		logger.info('Number of trainable model parameters: %d', number_params)
 
-	def _extend_embeddings(self):
-		""" Extends the embeddings in the encoder and decoder by three for the 
-		class embeddings.
-
-		Code based on HuggingFace Transformer repository.
-		"""
-		old_embeddings = self._bart.encoder.embed_tokens
-		old_num_tokens, embedding_dim = old_embeddings.weight.size()
-
-		# Build new embeddings and copy the word embeddings from the previous weights
-		new_num_tokens = old_num_tokens + 3
-		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim, padding_idx=old_embeddings.padding_idx)
-		new_embeddings.to(old_embeddings.weight.device)
-		new_embeddings.weight.data[:old_num_tokens, :] = old_embeddings.weight.data[:old_num_tokens, :]
-
-		# Set the encoder to use the new embeddings and tie the encoder and decoder embeddings.
-		self._bart.encoder.embed_tokens = new_embeddings
-		self._bart.decoder.embed_tokens = self._bart.encoder.embed_tokens
-		assert self._bart.decoder.embed_tokens == self._bart.encoder.embed_tokens
-
 	@overrides
 	def forward(self, 
 				src: torch.Tensor, 					# src.size()	 			= [batch_size, 3, premise_length]
@@ -105,6 +105,9 @@ class GNLI(Model):
 		# decoder_logits.size() = [batch_size*3, hypothesis_length, vocab_size]
 		decoder_logits, _ = self._bart(src_tokens=src_resized, src_lengths=src_lengths_resized, prev_output_tokens=prev_output_tokens_resized)
 		decoder_logits = decoder_logits.resize(batch_size, num_classes, hypothesis_length, self.vocab_size)
+
+		# If half precision training, at this point we want to convert our BART outputs back into floats
+		decoder_logits = decoder_logits.float()
 		
 		## Calculate the probability at each decoder timestep of seeing the next hypothesis token (i.e. the target token).
 		# This is useful for visualizing what token most strongly influences the classification decision.
@@ -121,14 +124,14 @@ class GNLI(Model):
 
 		# Grab the probabilities of the target tokens.
 		# target_decoder_probabilties.size() = [batch_size, 3, hypothesis_length]
-		target_decoder_probabilties = torch.gather(decoder_probabilties, dim=-1, index=target_expanded).squeeze(-1)
-		assert target_decoder_probabilties.size() == (batch_size, num_classes, hypothesis_length)
+		target_decoder_probabilities = torch.gather(decoder_probabilties, dim=-1, index=target_expanded).squeeze(-1)
+		assert target_decoder_probabilities.size() == (batch_size, num_classes, hypothesis_length)
 
 		## Calculate the logits for the classes.
 		# Add a small amount to each class logit since we directly calculate the probs from it and
 		# if all logits are 0, we will get 0's in the loss function.
 		# class_logits.size() = [batch_size, 3]
-		class_logits = 1e-15 + self.calculate_class_logits(target_decoder_probabilties, target_lengths)
+		class_logits = 1e-15 + self.calculate_class_logits(target_decoder_probabilities, target_lengths)
 		class_logits_sum = torch.sum(class_logits, dim=-1)
 		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, num_classes)
 
@@ -136,7 +139,7 @@ class GNLI(Model):
 		class_probabilities = class_logits/class_logits_sum
 
 		output_dict = {'decoder_probabilties': decoder_probabilties,
-					   'target_decoder_probabilities': target_decoder_probabilties,
+					   'target_decoder_probabilities': target_decoder_probabilities,
 					   'class_logits': class_logits,
 					   'class_probabilities': class_probabilities,
 					   'predicted_label': torch.max(class_logits, dim=-1)[1],
