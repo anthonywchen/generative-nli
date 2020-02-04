@@ -15,7 +15,7 @@
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": [0, 0.5, 1]
+		"discriminative_loss_weight": [0.8, 0.9, 0.95]
 	},
 	"iterator": {
 		"type": "basic",
