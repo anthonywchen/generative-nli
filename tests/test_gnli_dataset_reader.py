@@ -83,3 +83,32 @@ class Tests(AllenNlpTestCase):
 				assert tokenizer.convert_tokens_to_ids(['<pad>']*(max_premise_length-src_length)) == src[src_length:]
 				assert tokenizer.convert_tokens_to_ids(['<pad>']*(max_hypothesis_length-target_length)) == prev_output_tokens[target_length:]
 				assert tokenizer.convert_tokens_to_ids(['<pad>']*(max_hypothesis_length-target_length)) == target[target_length:]
+
+	def test_gnli_dataset_reader_no_padding(self):
+		tokenizer = GNLITokenizer.from_pretrained('roberta-large')
+		reader = GNLIDatasetReader('roberta-large', percent_data=0.25)
+
+		for instance in reader.read('data/mnli/train.jsonl'):
+			target = instance['target'].array.tolist()
+			premise_tokens = instance['metadata'].metadata['premise_tokens']
+			hypothesis_tokens = instance['metadata'].metadata['hypothesis_tokens']
+			target_length = instance['target_lengths'].array
+			assert reader._label_dict[instance['metadata'].metadata['label']] == instance['label'].array
+
+			# Iterate through the labels
+			for i, cur_class in zip(range(3), reader._label_dict) :
+				src = instance['src'].array.tolist()[i]
+				prev_output_tokens = instance['prev_output_tokens'].array.tolist()[i]
+				src_length = instance['src_lengths'].array.tolist()[i]
+
+				# Test encoder and decoder inputs are at max length
+				assert len(premise_tokens) + 3 == src_length == len(src)
+				assert len(hypothesis_tokens) + 2 == target_length == len(target) == len(prev_output_tokens)
+
+				# Test conversion of tokens to ids for encoder input and decoder input and target
+				cur_class_token = '<'+cur_class+'>'
+				assert src[1] == 50265 + i
+				assert tokenizer.convert_tokens_to_ids(['<s>'] + [cur_class_token] + premise_tokens + ['</s>']) == src
+				assert tokenizer.convert_tokens_to_ids(['</s>', '<s>'] + hypothesis_tokens) == prev_output_tokens
+				assert tokenizer.convert_tokens_to_ids(['<s>'] + hypothesis_tokens + ['</s>']) == target
+				assert target[:target_length] == prev_output_tokens[1:target_length] + [tokenizer.eos_token_id]

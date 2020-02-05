@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 class GNLIDatasetReader(DatasetReader):
 	def __init__(self,
 				 pretrained_model: str,
-				 max_premise_length: int,
-				 max_hypothesis_length: int,
+				 max_premise_length: int = None,
+				 max_hypothesis_length: int = None,
 				 percent_data: float = 1,
 				 lazy: bool = False) -> None:
 		super().__init__(lazy)
@@ -80,13 +80,15 @@ class GNLIDatasetReader(DatasetReader):
 		##### Padding of the input 
 		####################
 		# Pad the premise ids (the source)
-		encoder_padding = [self._tokenizer.pad_token_id]*(self.max_premise_length - src_length)
-		src = [s + encoder_padding for s in src]
+		if self.max_premise_length:
+			encoder_padding = [self._tokenizer.pad_token_id]*(self.max_premise_length - src_length)
+			src = [s + encoder_padding for s in src]
 
 		# Pad the hypothesis ids (the target)
-		decoder_padding = [self._tokenizer.pad_token_id]*(self.max_hypothesis_length - target_length)
-		target += decoder_padding
-		prev_output_tokens += decoder_padding
+		if self.max_hypothesis_length:
+			decoder_padding = [self._tokenizer.pad_token_id]*(self.max_hypothesis_length - target_length)
+			target += decoder_padding
+			prev_output_tokens += decoder_padding
 
 		# Replicate prev_output_tokens and the `src_lengths` three times
 		prev_output_tokens = [prev_output_tokens]*3

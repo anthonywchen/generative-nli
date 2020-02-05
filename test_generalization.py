@@ -7,44 +7,63 @@ from jsonlines import Reader
 from json import dumps, load
 import os
 from os.path import isdir, join
-from pprint import pprint
 from statistics import mean, stdev
 from tqdm import tqdm
 
-from src.bert_dataset_reader import BertNLIDatasetReader
 from src.bert import BertNLI
+from src.gnli import GNLI
+from src.bert_dataset_reader import BertNLIDatasetReader
+from src.gnli_dataset_reader import GNLIDatasetReader
 
+# Batch size to do evaluation
 BATCH_SIZE = 15
 
 def load_predictor(serialization_dir, device):
+	## Load the model
 	archive = load_archive(join(serialization_dir, 'model.tar.gz'))
 	model = archive.model.eval()
 	if device >= 0: 
 		model.to(0)
 
+	## Load the dataset reader
 	dataset_reader_params = archive.config.pop('dataset_reader')
-	dataset_reader_params.params['max_seq_length'] = None # Turn off truncation
+	model_name = archive.config.pop('model')['type']
+
+	# Turn off truncation of the inputs
+	if model_name == 'gnli':
+		dataset_reader_params.params['max_premise_length'] = None
+		dataset_reader_params.params['max_hypotheis_length'] = None
+	elif model_name == 'bertnli':
+		dataset_reader_params.params['max_seq_length'] = None
+	else:
+		raise ValueError()
+
 	reader = DatasetReader.by_name(dataset_reader_params.pop('type')).from_params(dataset_reader_params)
-	
-	return Predictor(model, reader)
+
+	predictor = Predictor(model, reader)
+	return predictor
 
 def is_correct(output_dict, label, dataset):
 	correct = False
 	# For these datasets, the label is either entails, neutral, or contradicts so 
 	# we can directly use the probabilities from the model.
 	if dataset in ['anli', 'bizarro', 'mnli']:
+		assert label in ['entailment', 'neutral', 'contradiction']
 		if (output_dict['predicted_label'] == 0 and label == 'entailment') or \
 			(output_dict['predicted_label'] == 1 and label == 'neutral') or \
 			(output_dict['predicted_label'] == 2 and label == 'contradiction'):
 			correct = True
 
-	# For these datasets, the label is either entails or not entails so 
-	# we sum the neutral and contradicition probabilties as the not entails probability
+	# For these datasets, the label is either entails or "not entails" so 
+	# we sum the neutral and contradiction probs as the "not entails" probability
 	elif dataset in ['hans', 'rte', 'scitail']:
+		assert label in ['entailment', 'not_entailment']
 		class_probs = output_dict['class_probabilities']
-		entail_prob, not_entail_prob = class_probs[0], class_probs[1]+class_probs[2]
+		entail_prob 	= class_probs[0]
+		not_entail_prob = class_probs[1] + class_probs[2]
+
 		if (entail_prob >= not_entail_prob and label == 'entailment') or \
-		   (entail_prob < not_entail_prob and label == 'not_entailment'):
+		   (entail_prob <  not_entail_prob and label == 'not_entailment'):
 			correct = True
 	else:
 		raise ValueError('Dataset not defined')
@@ -106,35 +125,29 @@ def predict_run(serialization_dir, device):
 	os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
 
 	predictor = load_predictor(serialization_dir, device)
-	results_dict = {}
 
-	results_dict['anli'] = predict_file(predictor, 'data/anli/test.jsonl', serialization_dir)
-	results_dict['bizarro'] = predict_file(predictor, 'data/bizarro/test.jsonl', serialization_dir)
-	results_dict['hans'] = predict_file(predictor, 'data/hans/test.jsonl', serialization_dir)
-	results_dict['rte'] = predict_file(predictor, 'data/rte/test.jsonl', serialization_dir)
-	results_dict['scitail'] = predict_file(predictor, 'data/scitail/test.jsonl', serialization_dir)
-	results_dict['mnli'] = predict_file(predictor, 'data/mnli/dev.jsonl', serialization_dir)
+	results_dict = {'anli': 	predict_file(predictor, 'data/anli/test.jsonl', serialization_dir),
+					'bizarro': 	predict_file(predictor, 'data/bizarro/test.jsonl', serialization_dir),
+					'hans': 	predict_file(predictor, 'data/hans/test.jsonl', serialization_dir),
+					'rte': 		predict_file(predictor, 'data/rte/test.jsonl', serialization_dir),
+					'scitail': 	predict_file(predictor, 'data/scitail/test.jsonl', serialization_dir),
+					'mnli_dev': predict_file(predictor, 'data/mnli/dev.jsonl', serialization_dir)}
 
 	with open(join(serialization_dir, 'generalization_metrics.json'), 'w') as writer:
 		writer.write(dumps(results_dict, indent=4, sort_keys=True))
 
-def main():
-	parser = argparse.ArgumentParser()
-	parser.add_argument('-s', '--serialization_dir', type=str, help='path to serialization_dir with the different runs')
-	parser.add_argument('-d', '--device', type=int, default=-1, help='GPU to use. Default is -1 for CPU')
-	args = parser.parse_args()
-
-	num_runs = len(glob(join(args.serialization_dir, '*') + '/'))
+def main(serialization_dir, device):
+	num_runs = len(glob(join(serialization_dir, '*') + '/'))
 
 	# Compute generalization metrics for individual runs
 	for run_num in range(num_runs):
 		print('\n', '='*30, 'Run num', run_num, '='*30)
-		predict_run(join(args.serialization_dir, str(run_num)), args.device)
+		predict_run(join(serialization_dir, str(run_num)), device)
 		
 	# Aggregate generalization metrics across runs
 	metrics_dict = {}
 	for run_num in range(num_runs):
-		cur_metrics_dict = load(open(join(args.serialization_dir, str(run_num), 'generalization_metrics.json')))
+		cur_metrics_dict = load(open(join(serialization_dir, str(run_num), 'generalization_metrics.json')))
 
 		# Add keys to aggregated generalization metrics dictionary
 		if metrics_dict == {}:
@@ -157,8 +170,13 @@ def main():
 			metrics_dict[dataset][metric] = mean_metric + ' +- ' +  stdev_metric
 
 	# Write aggregated generalization metrics
-	with open(join(args.serialization_dir, 'aggregated_generalization_metrics.json'), 'w') as writer:
+	with open(join(serialization_dir, 'aggregated_generalization_metrics.json'), 'w') as writer:
 		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
 
 if __name__ == '__main__':
-	main()
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-s', '--serialization_dir', type=str, help='path to serialization_dir with the different runs')
+	parser.add_argument('-d', '--device', type=int, default=-1, help='GPU to use. Default is -1 for CPU')
+	args = parser.parse_args()
+
+	main(args.serialization_dir, args.device)
