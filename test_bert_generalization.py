@@ -32,7 +32,7 @@ def is_correct(output_dict, label, dataset):
 	correct = False
 	# For these datasets, the label is either entails, neutral, or contradicts so 
 	# we can directly use the probabilities from the model.
-	if dataset in ['anli', 'bizarro']:
+	if dataset in ['anli', 'bizarro', 'mnli']:
 		if (output_dict['predicted_label'] == 0 and label == 'entailment') or \
 			(output_dict['predicted_label'] == 1 and label == 'neutral') or \
 			(output_dict['predicted_label'] == 2 and label == 'contradiction'):
@@ -61,7 +61,10 @@ def predict_file(predictor, file_path, serialization_dir):
 	for line in Reader(open(file_path)):
 		instances.append(predictor._dataset_reader.text_to_instance(premise=line['premise'], hypothesis=line['hypothesis']))
 		labels.append(line['label'])
-		tags.append(line['tag'])
+		if 'tag' in line:
+			tags.append(line['tag'])
+		else:
+			tags.append(None)
 	
 	total = len(instances)
 
@@ -110,6 +113,7 @@ def predict_run(serialization_dir, device):
 	results_dict['hans'] = predict_file(predictor, 'data/hans/test.jsonl', serialization_dir)
 	results_dict['rte'] = predict_file(predictor, 'data/rte/test.jsonl', serialization_dir)
 	results_dict['scitail'] = predict_file(predictor, 'data/scitail/test.jsonl', serialization_dir)
+	results_dict['mnli'] = predict_file(predictor, 'data/mnli/dev.jsonl', serialization_dir)
 
 	with open(join(serialization_dir, 'generalization_metrics.json'), 'w') as writer:
 		writer.write(dumps(results_dict, indent=4, sort_keys=True))

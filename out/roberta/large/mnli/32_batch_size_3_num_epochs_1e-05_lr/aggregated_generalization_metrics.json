@@ -19,6 +19,9 @@
         "accuracy_subsequence_entailment": "100.0 +- 0.0",
         "accuracy_subsequence_not_entailment": "36.3 +- 4.5"
     },
+    "mnli": {
+        "accuracy": "90.6 +- 0.1"
+    },
     "rte": {
         "accuracy": "85.9 +- 1.3",
         "accuracy_dev": "85.9 +- 0.4",

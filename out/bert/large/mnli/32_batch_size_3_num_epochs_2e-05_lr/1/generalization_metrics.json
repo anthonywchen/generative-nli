@@ -47,6 +47,11 @@
         "subsequence_not_entailment_total": 5000,
         "total": 30000
     },
+    "mnli": {
+        "accuracy": 86.44931227712685,
+        "num_correct": 8485,
+        "total": 9815
+    },
     "rte": {
         "accuracy": 78.09902421395013,
         "accuracy_dev": 77.9783393501805,
