@@ -10,7 +10,7 @@
 		"lazy": false,
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
-		"max_hypothesis_length": 80,
+		"max_hypothesis_length": 70,
 		"percent_data": 0.001,
 	},
 	"validation_dataset_reader": {
@@ -18,7 +18,7 @@
 		"lazy": false,
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
-		"max_hypothesis_length": 80,
+		"max_hypothesis_length": 70,
 	},
 	"model": {
 		"type": "gnli",
@@ -33,7 +33,7 @@
 		"type": "apextrainer",
 		"cuda_device": 1,
 		"num_epochs": [3, 5, 10, 15],
-		"accumulation_steps": 4,
+		"accumulation_steps": 8,
 		"half_precision": true,
 		"opt_level": "O2",
 		"num_serialized_models_to_keep": 0,
