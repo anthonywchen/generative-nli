@@ -16,7 +16,7 @@ from src.bert_dataset_reader import BertNLIDatasetReader
 from src.gnli_dataset_reader import GNLIDatasetReader
 
 # Batch size to do evaluation
-BATCH_SIZE = 15
+BATCH_SIZE = 45
 
 def load_predictor(serialization_dir, device):
 	## Load the model
