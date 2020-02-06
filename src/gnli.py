@@ -90,6 +90,7 @@ class GNLI(Model):
 				target: torch.Tensor,				# target.size() 			= [batch_size, hypothesis_length]	
 				target_lengths: torch.Tensor, 		# target_lengths.size()		= [batch_size]
 				label: torch.Tensor = None,	 		# label.size() 				= [batch_size]
+				return_probs: bool = False, 		# Return the decoder probabilties)
 				metadata = None):
 		batch_size, num_classes, premise_length = src.size()
 		hypothesis_length = target.size(-1)
@@ -138,14 +139,16 @@ class GNLI(Model):
 		# Calculate the class probabilities as the class logits divided by the sum of the other class logits
 		class_probabilities = class_logits/class_logits_sum
 
-		output_dict = {'decoder_probabilties': decoder_probabilties,
-					   'target_decoder_probabilities': target_decoder_probabilities,
-					   'class_logits': class_logits,
+		output_dict = {'class_logits': class_logits,
 					   'class_probabilities': class_probabilities,
 					   'predicted_label': torch.max(class_logits, dim=-1)[1],
-					   'target': target,
-					   'target_lengths': target_lengths,
 					   'metadata': metadata}
+
+		if return_probs:
+			output_dict['decoder_probabilties'] 		= decoder_probabilties
+			output_dict['target_decoder_probabilities'] = target_decoder_probabilities
+			output_dict['target'] 						= target
+			output_dict['target_lengths'] 				= target_lengths
 			
 		if label is not None:		
 			label = label.long()

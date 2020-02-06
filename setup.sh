@@ -63,7 +63,7 @@ mv anli_v0.1 anli
 
 # Download Bizarro (Counterfactually-Augmented Dataset)
 mkdir bizarro
-cd bizzaro
+cd bizarro
 wget https://github.com/dkaushik96/counterfactually-augmented-data/archive/master.zip
 unzip master.zip
 mv counterfactually-augmented-data-master/NLI/revised_premise/ .

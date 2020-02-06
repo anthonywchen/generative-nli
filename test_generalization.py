@@ -31,8 +31,7 @@ def load_predictor(serialization_dir, device):
 
 	# Turn off truncation of the inputs
 	if model_name == 'gnli':
-		dataset_reader_params.params['max_premise_length'] = None
-		dataset_reader_params.params['max_hypotheis_length'] = None
+		pass
 	elif model_name == 'bertnli':
 		dataset_reader_params.params['max_seq_length'] = None
 	else:
@@ -67,7 +66,6 @@ def is_correct(output_dict, label, dataset):
 			correct = True
 	else:
 		raise ValueError('Dataset not defined')
-
 	return correct
 
 def predict_file(predictor, file_path, serialization_dir):
@@ -93,6 +91,7 @@ def predict_file(predictor, file_path, serialization_dir):
 	for start_idx in tqdm(range(0, total, BATCH_SIZE)):
 		batch_instances = instances[start_idx:start_idx+BATCH_SIZE]
 		output_dicts += predictor.predict_batch_instance(batch_instances)
+
 	assert len(output_dicts) == len(labels) == len(tags) == total
 
 	# Compute accuracy statistics
@@ -143,7 +142,7 @@ def main(serialization_dir, device):
 	for run_num in range(num_runs):
 		print('\n', '='*30, 'Run num', run_num, '='*30)
 		predict_run(join(serialization_dir, str(run_num)), device)
-		
+
 	# Aggregate generalization metrics across runs
 	metrics_dict = {}
 	for run_num in range(num_runs):

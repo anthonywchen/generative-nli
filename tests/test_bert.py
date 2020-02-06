@@ -20,7 +20,7 @@ from src.bert_dataset_reader import BertNLIDatasetReader
 from src.bert import BertNLI
 
 ABS_TOL = 0.000001
-os.environ["CUDA_VISIBLE_DEVICES"]="0"		
+os.environ["CUDA_VISIBLE_DEVICES"]="3"		
 vocab = Vocabulary()
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
