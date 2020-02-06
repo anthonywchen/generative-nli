@@ -23,18 +23,18 @@
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : [32],
+		"batch_size" : 32,
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 0,
+		"cuda_device": 3,
 		"num_epochs": [3],
 		"accumulation_steps": 16,
 		"half_precision": true,
 		"opt_level": "O2", 
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
-		"warmup_proportion": [0.06],
+		"warmup_proportion": 0.06,
 		"optimizer": {
 			"type": "adamw",
 			"lr": [1e-5],
