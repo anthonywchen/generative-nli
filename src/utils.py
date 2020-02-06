@@ -23,7 +23,7 @@ def read_data(file_path, percent_data):
 	counts = {'entailment': 0, 'neutral': 0, 'contradiction': 0}
 	for l in lines:
 		counts[l['label']] += 1
-	logger.info('Counts by label:', counts)
+	logger.info('Counts by label: ' + counts.__repr__())
 
 	return lines
 
