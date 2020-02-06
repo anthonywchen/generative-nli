@@ -1,0 +1,33 @@
+{
+    "anli": {
+        "accuracy": "26.2 +- 0.1",
+        "accuracy_r1_test": "21.1 +- 1.3",
+        "accuracy_r2_test": "27.1 +- 0.5",
+        "accuracy_r3_test": "29.8 +- 0.5"
+    },
+    "bizarro": {
+        "accuracy": "71.6 +- 0.8",
+        "accuracy_raw_data/bizarro/revised_hypothesis": "79.0 +- 0.9",
+        "accuracy_raw_data/bizarro/revised_premise": "64.3 +- 0.6"
+    },
+    "hans": {
+        "accuracy": "72.1 +- 0.2",
+        "accuracy_constituent_entailment": "98.1 +- 0.3",
+        "accuracy_constituent_not_entailment": "37.5 +- 2.3",
+        "accuracy_lexical_overlap_entailment": "95.4 +- 1.0",
+        "accuracy_lexical_overlap_not_entailment": "74.2 +- 2.1",
+        "accuracy_subsequence_entailment": "99.2 +- 0.5",
+        "accuracy_subsequence_not_entailment": "28.2 +- 3.9"
+    },
+    "mnli_dev": {
+        "accuracy": "86.5 +- 0.2"
+    },
+    "rte": {
+        "accuracy": "78.3 +- 0.7",
+        "accuracy_dev": "77.9 +- 1.2",
+        "accuracy_train": "78.3 +- 0.7"
+    },
+    "scitail": {
+        "accuracy": "81.2 +- 0.4"
+    }
+}

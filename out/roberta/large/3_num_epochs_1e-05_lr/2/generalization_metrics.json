@@ -1,0 +1,71 @@
+{
+    "anli": {
+        "accuracy": 30.96875,
+        "accuracy_r1_test": 44.4,
+        "accuracy_r2_test": 25.4,
+        "accuracy_r3_test": 24.416666666666668,
+        "num_correct": 991,
+        "r1_test_correct": 444,
+        "r1_test_total": 1000,
+        "r2_test_correct": 254,
+        "r2_test_total": 1000,
+        "r3_test_correct": 293,
+        "r3_test_total": 1200,
+        "total": 3200
+    },
+    "bizarro": {
+        "accuracy": 76.1875,
+        "accuracy_raw_data/bizarro/revised_hypothesis": 83.375,
+        "accuracy_raw_data/bizarro/revised_premise": 69.0,
+        "num_correct": 1219,
+        "raw_data/bizarro/revised_hypothesis_correct": 667,
+        "raw_data/bizarro/revised_hypothesis_total": 800,
+        "raw_data/bizarro/revised_premise_correct": 552,
+        "raw_data/bizarro/revised_premise_total": 800,
+        "total": 1600
+    },
+    "hans": {
+        "accuracy": 78.04333333333334,
+        "accuracy_constituent_entailment": 99.34,
+        "accuracy_constituent_not_entailment": 34.94,
+        "accuracy_lexical_overlap_entailment": 99.98,
+        "accuracy_lexical_overlap_not_entailment": 94.42,
+        "accuracy_subsequence_entailment": 99.94,
+        "accuracy_subsequence_not_entailment": 39.64,
+        "constituent_entailment_correct": 4967,
+        "constituent_entailment_total": 5000,
+        "constituent_not_entailment_correct": 1747,
+        "constituent_not_entailment_total": 5000,
+        "lexical_overlap_entailment_correct": 4999,
+        "lexical_overlap_entailment_total": 5000,
+        "lexical_overlap_not_entailment_correct": 4721,
+        "lexical_overlap_not_entailment_total": 5000,
+        "num_correct": 23413,
+        "subsequence_entailment_correct": 4997,
+        "subsequence_entailment_total": 5000,
+        "subsequence_not_entailment_correct": 1982,
+        "subsequence_not_entailment_total": 5000,
+        "total": 30000
+    },
+    "mnli_dev": {
+        "accuracy": 90.49414161996944,
+        "num_correct": 8882,
+        "total": 9815
+    },
+    "rte": {
+        "accuracy": 86.30285507770148,
+        "accuracy_dev": 84.83754512635379,
+        "accuracy_train": 86.46586345381526,
+        "dev_correct": 235,
+        "dev_total": 277,
+        "num_correct": 2388,
+        "total": 2767,
+        "train_correct": 2153,
+        "train_total": 2490
+    },
+    "scitail": {
+        "accuracy": 82.69049858889935,
+        "num_correct": 1758,
+        "total": 2126
+    }
+}
