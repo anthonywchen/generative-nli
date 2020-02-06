@@ -1,4 +1,3 @@
-from jsonlines import Reader
 import logging
 import numpy as np
 from overrides import overrides
@@ -11,6 +10,8 @@ from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import ArrayField
 from allennlp.data.fields.metadata_field import MetadataField
 from allennlp.data.instance import Instance
+
+from src import utils
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -39,18 +40,8 @@ class BertNLIDatasetReader(DatasetReader):
 
 	@overrides
 	def _read(self, file_path: str):
-		# Load in all lines
-		with open(file_path) as f:
-			lines = [line for line in Reader(f)]
-
-		# Determine how many lines we will use as a percent of the data
-		num_lines_to_use = int(len(lines)*self.percent_data)
-		logger.info('Number of data points: %d', num_lines_to_use)
-
-		if self.percent_data < 1:
-			logger.info('Sampling lines...')
-			lines = random.sample(lines, num_lines_to_use)
-
+		lines = utils.read_data(file_path, self.percent_data)
+		
 		# Create instances
 		for line in lines:
 			yield self.text_to_instance(**line)
