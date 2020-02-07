@@ -39,7 +39,7 @@ class Tests(AllenNlpTestCase):
 		self.set_seed()
 
 		config = Params.from_file('tests/sample_gnli_config.json')
-		config.params['model']['discriminative_loss_weight'] = .5
+		config.params['model']['discriminative_loss_weight'] = .8
 		output_directory = 'tests/gnli'
 		if isdir(output_directory): 
 			shutil.rmtree(output_directory)
