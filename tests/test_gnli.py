@@ -20,7 +20,7 @@ from src.gnli_dataset_reader import GNLIDatasetReader
 from src.gnli import GNLI
 
 ABS_TOL = 0.000001
-os.environ["CUDA_VISIBLE_DEVICES"]="0"		
+os.environ["CUDA_VISIBLE_DEVICES"]="2"		
 vocab = Vocabulary()
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name

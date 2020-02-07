@@ -19,6 +19,7 @@
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
 		"max_hypothesis_length": 80,
+		"percent_data": 0.1,
 	},
 	"model": {
 		"type": "gnli",
@@ -27,7 +28,7 @@
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : 32,
+		"batch_size" : [16],
 	},
 	"trainer": {
 		"type": "apextrainer",
