@@ -20,7 +20,7 @@ from src.bert_dataset_reader import BertNLIDatasetReader
 from src.bert import BertNLI
 
 ABS_TOL = 0.000001
-os.environ["CUDA_VISIBLE_DEVICES"]="3"		
+os.environ["CUDA_VISIBLE_DEVICES"]="0"		
 vocab = Vocabulary()
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -38,7 +38,7 @@ class Tests(AllenNlpTestCase):
 		print('\test_training\n')
 		self.set_seed()
 
-		config = Params.from_file('tests/sample_bert_base_config.json')
+		config = Params.from_file('tests/sample_bert_config.json')
 		output_directory = 'tests/bert_base'
 		if isdir(output_directory): 
 			shutil.rmtree(output_directory)
@@ -49,10 +49,9 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8670309653916212, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.4130164819104331, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.40207767486572266, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.7654545454545455, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.8, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.7445328831672668, abs_tol=ABS_TOL)
 
 	def test_apex_trainer(self):
 		""" 
@@ -62,8 +61,8 @@ class Tests(AllenNlpTestCase):
 		print('\ntest_apex_trainer\n')
 		self.set_seed()
 
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		config.params['trainer']['accumulation_steps'] = 16
+		config = Params.from_file('tests/sample_bert_config.json')
+		config.params['trainer']['accumulation_steps'] = 32
 		output_directory = 'tests/bert_base_apex'
 		if isdir(output_directory): 
 			shutil.rmtree(output_directory)
@@ -74,10 +73,9 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8670309653916212, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.4130164819104331, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.8888888888888888, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.40207767486572266, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.7654545454545455, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.8, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.7445328831672668, abs_tol=ABS_TOL)
 
 	def test_half_prec_grad_accum(self):
 		""" 
@@ -87,8 +85,8 @@ class Tests(AllenNlpTestCase):
 		print('\ntest_half_prec_grad_accum\n')
 		self.set_seed()
 
-		config = Params.from_file('tests/sample_bert_base_config.json')
-		config.params['trainer']['accumulation_steps'] = 2
+		config = Params.from_file('tests/sample_bert_config.json')
+		config.params['trainer']['accumulation_steps'] = 16
 		config.params['trainer']['half_precision'] = True
 		config.params['trainer']['opt_level'] = 'O2'
 		output_directory = 'tests/bert_base_half_prec_grad_accum'
@@ -101,7 +99,6 @@ class Tests(AllenNlpTestCase):
 		# Check that final metrics are correct. This can be useful since different versions 
 		# sometimes yield different results and this can potentially reveal this discrepency. 
 		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_4.json')))
-		assert isclose(final_metrics['training_accuracy'], 0.8579234972677595, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['training_loss'], 0.4314053590808596, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_accuracy'], 0.6666666666666666, abs_tol=ABS_TOL)
-		assert isclose(final_metrics['best_validation_loss'], 0.4753444790840149, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['training_accuracy'], 0.7327272727272728, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_accuracy'], 0.7, abs_tol=ABS_TOL)
+		assert isclose(final_metrics['best_validation_loss'], 0.812595009803772, abs_tol=ABS_TOL)
