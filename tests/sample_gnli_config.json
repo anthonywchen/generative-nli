@@ -4,7 +4,6 @@
 	"datasets_for_vocab_creation": [],
 	"dataset_reader": {
 		"type": "gnli",
-		"lazy": false,
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
 		"max_hypothesis_length": 80,
@@ -13,7 +12,7 @@
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": 0.8,
+		"discriminative_loss_weight": 0.2,
 	},
 	"iterator": {
 		"type": "basic",

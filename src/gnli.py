@@ -12,7 +12,10 @@ from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics.average import Average
 from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
 
+from src.gnli_embedding import GNLIEmbedding
+
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
 
 @Model.register("gnli")
 class GNLI(Model):
@@ -34,27 +37,20 @@ class GNLI(Model):
 	"""
 	@property
 	def vocab_size(self):
-		return self._bart.encoder.embed_tokens.num_embeddings
+		return self._bart.encoder.embed_tokens.num_token_embeddings
 
-	def _extend_embeddings(self):
-		""" Extends the embeddings in the encoder and decoder by three for the 
-		class embeddings.
+	@property
+	def label_size(self):
+		return self._bart.encoder.embed_tokens.num_label_embeddings
 
-		Code based on HuggingFace Transformer repository.
-		"""
-		old_embeddings = self._bart.encoder.embed_tokens
-		old_num_tokens, embedding_dim = old_embeddings.weight.size()
+	def _create_embeddings(self):
+		# Create the new embedding layer for GNLI
+		gnli_embeddings = GNLIEmbedding(self._bart.encoder.embed_tokens, num_labels=3)
 
-		# Build new embeddings and copy the word embeddings from the previous weights
-		new_num_tokens = old_num_tokens + 3
-		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim, padding_idx=old_embeddings.padding_idx)
-		new_embeddings.to(old_embeddings.weight.device)
-		new_embeddings.weight.data[:old_num_tokens, :] = old_embeddings.weight.data[:old_num_tokens, :]
-
-		# Set the encoder to use the new embeddings and tie the encoder and decoder embeddings.
-		self._bart.encoder.embed_tokens = new_embeddings
+		# Set the encoder embedding for GNLI and tie the encoder and decoder embeddings
+		self._bart.encoder.embed_tokens = gnli_embeddings
 		self._bart.decoder.embed_tokens = self._bart.encoder.embed_tokens
-		assert self._bart.decoder.embed_tokens == self._bart.encoder.embed_tokens
+		assert self._bart.encoder.embed_tokens == self._bart.decoder.embed_tokens
 
 	def __init__(self, 
 				 pretrained_model: str,
@@ -68,47 +64,46 @@ class GNLI(Model):
 
 		# Load in BART and extend the embeddings layer by three for the label embeddings.
 		self._bart = torch.hub.load('pytorch/fairseq', pretrained_model).model
-		self._extend_embeddings()
+		self._create_embeddings()
 
 		# Ignore padding indices when calculating generative loss.
-		self._generative_loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self._bart.encoder.padding_idx)
-		self._discriminative_loss_fn = torch.nn.NLLLoss()
+		assert self._bart.encoder.padding_idx == 1
+		self._generative_loss_fn 		 = torch.nn.CrossEntropyLoss(ignore_index=self._bart.encoder.padding_idx)
+		self._discriminative_loss_fn 	 = torch.nn.NLLLoss()
 		self._discriminative_loss_weight = discriminative_loss_weight
-		self.metrics = {'accuracy': CategoricalAccuracy(), 
-						'gen_loss': Average(), 
-						'disc_loss': Average()}
+		self.metrics 					 = {'accuracy': CategoricalAccuracy(), 'disc_loss': Average(), 'gen_loss': Average()}
 
 		initializer(self)
 		number_params = sum([numpy.prod(p.size()) for p in list(self.parameters()) if p.requires_grad])
 		logger.info('Number of trainable model parameters: %d', number_params)
 
 	@overrides
-	def forward(self, 
-				src: torch.Tensor, 					# src.size()	 			= [batch_size, 3, premise_length]
-				src_lengths: torch.Tensor, 			# src_lengths.size() 		= [batch_size, 3]
-				prev_output_tokens: torch.Tensor, 	# prev_output_tokens.size() = [batch_size, 3, hypothesis_length]
-				target: torch.Tensor,				# target.size() 			= [batch_size, hypothesis_length]	
-				target_lengths: torch.Tensor, 		# target_lengths.size()		= [batch_size]
-				label: torch.Tensor = None,	 		# label.size() 				= [batch_size]
-				return_probs: bool = False, 		# Return the decoder probabilties)
+	def forward(self,
+				src: torch.Tensor, 					# [batch_size, 3, premise_length]
+				src_lengths: torch.Tensor, 			# [batch_size, 3]
+				prev_output_tokens: torch.Tensor, 	# [batch_size, 3, hypothesis_length]
+				target: torch.Tensor,				# [batch_size, hypothesis_length]	
+				target_lengths: torch.Tensor, 		# [batch_size]
+				label: torch.Tensor = None,	 		# [batch_size]
+				return_probs: bool = False,			# Return the decoder probabilties
 				metadata = None):
-		batch_size, num_classes, premise_length = src.size()
-		hypothesis_length = target.size(-1)
-		assert num_classes == 3
+		batch_size, hypothesis_length = target.size()
+		premise_length = src.size(-1)
+		assert src.size(1) == self.label_size == 3
 
 		## Before feeding tensors through BART, merge the batch size and number of classes dimensions
-		src_resized = src.resize(batch_size*num_classes, premise_length)
-		src_lengths_resized = src_lengths.resize(batch_size*num_classes)
-		prev_output_tokens_resized = prev_output_tokens.resize(batch_size*num_classes, hypothesis_length)
+		src 				= src.resize(batch_size*self.label_size, premise_length)
+		src_lengths 		= src_lengths.resize(batch_size*self.label_size)
+		prev_output_tokens 	= prev_output_tokens.resize(batch_size*self.label_size, hypothesis_length)
 		
 		## Feed tensors through BART model, which returns the logits from the decoder.
 		# A set of logits is returned for each token in `prev_output_tokens` over the vocabulary.
+		# Then unsqueeze the first dimension and convert to a float (for half-precision training)
 		# decoder_logits.size() = [batch_size*3, hypothesis_length, vocab_size]
-		decoder_logits, _ = self._bart(src_tokens=src_resized, src_lengths=src_lengths_resized, prev_output_tokens=prev_output_tokens_resized)
-		decoder_logits = decoder_logits.resize(batch_size, num_classes, hypothesis_length, self.vocab_size)
-
-		# If half precision training, at this point we want to convert our BART outputs back into floats
-		decoder_logits = decoder_logits.float()
+		decoder_logits, _ = self._bart(src_tokens=src,
+									   src_lengths=src_lengths,
+									   prev_output_tokens=prev_output_tokens)
+		decoder_logits = decoder_logits.resize(batch_size, self.label_size, hypothesis_length, self.vocab_size).float()
 		
 		## Calculate the probability at each decoder timestep of seeing the next hypothesis token (i.e. the target token).
 		# This is useful for visualizing what token most strongly influences the classification decision.
@@ -118,26 +113,26 @@ class GNLI(Model):
 		# decoder_probabilties.size() = [batch_size, 3, hypothesis_length, vocab_size]
 		decoder_probabilties = 1e-15 + torch.nn.functional.softmax(decoder_logits, dim=-1)
 
-		# Expand size of target to match the # of dimensions of `decoder_probabilties`.
+		# Expand size of `target` to match the # of dimensions of `decoder_probabilties`.
 		# target_expanded.size() = [batch_size, 3, hypothesis_length, 1]
-		target_expanded = target.unsqueeze(1).repeat(1, num_classes, 1).unsqueeze(-1)
-		assert target_expanded.size() == (batch_size, num_classes, hypothesis_length, 1)
+		target_expanded = target.unsqueeze(1).repeat(1, self.label_size, 1).unsqueeze(-1)
 
 		# Grab the probabilities of the target tokens.
 		# target_decoder_probabilties.size() = [batch_size, 3, hypothesis_length]
 		target_decoder_probabilities = torch.gather(decoder_probabilties, dim=-1, index=target_expanded).squeeze(-1)
-		assert target_decoder_probabilities.size() == (batch_size, num_classes, hypothesis_length)
+		assert target_decoder_probabilities.size() == (batch_size, self.label_size, hypothesis_length)
 
 		## Calculate the logits for the classes.
-		# Add a small amount to each class logit since we directly calculate the probs from it and
+		# Add a small constant to each class logit since we directly calculate the probs from it and
 		# if all logits are 0, we will get 0's in the loss function.
 		# class_logits.size() = [batch_size, 3]
-		class_logits = 1e-15 + self.calculate_class_logits(target_decoder_probabilities, target_lengths)
+		class_logits 	 = 1e-15 + self.calculate_class_logits(target_decoder_probabilities, target_lengths)
 		class_logits_sum = torch.sum(class_logits, dim=-1)
-		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, num_classes)
+		class_logits_sum = class_logits_sum.unsqueeze(-1).repeat(1, self.label_size)
 
-		# Calculate the class probabilities as the class logits divided by the sum of the other class logits
+		# Calculate the class probabilities by normalizing the class logit values
 		class_probabilities = class_logits/class_logits_sum
+		assert math.isclose(torch.sum(class_probabilities).item(), batch_size, abs_tol=1e-5)
 
 		output_dict = {'class_logits': class_logits,
 					   'class_probabilities': class_probabilities,
@@ -159,27 +154,25 @@ class GNLI(Model):
 			
 			###### Discriminative Loss ######
 			# Discriminative loss is the negative log likelihood over the class probabilities
-			assert math.isclose(torch.sum(class_probabilities).item(), batch_size, abs_tol=1e-5)
 			discriminative_loss = self._discriminative_loss_fn(torch.log(class_probabilities), label)
 			output_dict['disc_loss'] = discriminative_loss.item()
 			self.metrics['disc_loss'](discriminative_loss.item())
 
 			###### Generative Loss ######
-			# Extract from the decoder logits the logits over the correct class
+			## Extract from the decoder logits the logits over the correct class
 			# Expand the labels to match the # of dimensions of the decoder logits
 			# label_expanded.size() = [batch_size, 1, hypothesis_length, vocab_size]
-			label_expanded = label.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).repeat(1, 1, hypothesis_length, self.vocab_size)
-			assert list(label_expanded.size()) == [batch_size, 1, hypothesis_length, self.vocab_size]
+			label_expanded = label.resize(batch_size, 1, 1, 1).repeat(1, 1, hypothesis_length, self.vocab_size)
 			# correct_class_decoder_logits.size() = [batch_size, hypothesis_length, vocab_size]
 			correct_class_decoder_logits = torch.gather(decoder_logits, dim=1, index=label_expanded).squeeze(1)
 			assert list(correct_class_decoder_logits.size()) == [batch_size, hypothesis_length, self.vocab_size]
 
 			# Resize the correct class decoder logits and the targets to be 2D and 1D respectively
 			# before calculating the generative loss since CrossEntropyLoss() expects these dimensions.
-			correct_class_decoder_logits_resized = correct_class_decoder_logits.resize(batch_size*hypothesis_length, self.vocab_size)
-			target_resized = target.resize(batch_size*hypothesis_length)
+			correct_class_decoder_logits = correct_class_decoder_logits.resize(batch_size*hypothesis_length, self.vocab_size)
+			target = target.resize(batch_size*hypothesis_length)
 
-			generative_loss = self._generative_loss_fn(correct_class_decoder_logits_resized, target_resized)
+			generative_loss = self._generative_loss_fn(correct_class_decoder_logits, target)
 			output_dict['gen_loss'] = generative_loss.item()
 			self.metrics['gen_loss'](generative_loss.item())
 
@@ -189,7 +182,8 @@ class GNLI(Model):
 			elif self._discriminative_loss_weight == 1:
 				output_dict['loss'] = discriminative_loss
 			else:
-				output_dict['loss'] = self._discriminative_loss_weight*discriminative_loss + (1-self._discriminative_loss_weight)*generative_loss
+				output_dict['loss'] = self._discriminative_loss_weight*discriminative_loss + \
+									  (1-self._discriminative_loss_weight)*generative_loss
 
 		return output_dict
 
@@ -200,7 +194,7 @@ class GNLI(Model):
 		by calculating the autoregressive probability over the hypothesis tokens. 
 		p(hypothesis | premise, class ) is treated as the logit for that class.
 		"""
-		batch_size, num_classes, _ = hypothesis_probabilities.size()
+		batch_size, _, _ = hypothesis_probabilities.size()
 		log_hypothesis_probabilities = torch.log10(hypothesis_probabilities)
 
 		# Sum the probabiltiies of the hypothesis tokens up to the length of the hypothesis (without padding)
@@ -212,7 +206,7 @@ class GNLI(Model):
 
 		# scaling.size() = [batch_size]
 		scaling = torch.max(log_class_logits, dim=-1)[0]
-		scaling = scaling.unsqueeze(-1).repeat(1, num_classes)
+		scaling = scaling.unsqueeze(-1).repeat(1, self.label_size)
 		log_class_logits = log_class_logits - scaling
 
 		class_logits = 10**log_class_logits
