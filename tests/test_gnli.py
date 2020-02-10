@@ -29,15 +29,15 @@ class Tests(AllenNlpTestCase):
 		random.seed(0)
 		torch.manual_seed(0)
 
-	# def test_embeddings(self):
-	# 	gnli = GNLI('bart.large')
-	# 	bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
+	def test_embeddings(self):
+		gnli = GNLI('bart.large')
+		bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
 
-	# 	# Check that GNLI encoder and decoder are tied
-	# 	assert gnli._bart.encoder.embed_tokens == gnli._bart.decoder.embed_tokens
+		# Check that GNLI encoder and decoder are tied
+		assert gnli._bart.encoder.embed_tokens == gnli._bart.decoder.embed_tokens
 
-	# 	# Check that GNLI and original BART token embeddings values match
-	# 	assert torch.all(list(gnli._bart.encoder.embed_tokens.embed_tokens.parameters())[0] == list(bart.encoder.embed_tokens.parameters())[0]).item()
+		# Check that GNLI and original BART token embeddings values match
+		assert torch.all(list(gnli._bart.encoder.embed_tokens.embed_tokens.parameters())[0] == list(bart.encoder.embed_tokens.parameters())[0]).item()
 
 	def test_training(self):
 		""" 

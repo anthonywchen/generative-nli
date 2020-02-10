@@ -7,16 +7,23 @@
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
 		"max_hypothesis_length": 80,
+		"percent_data": 0.0005,
+	},
+	"validation_dataset_reader": {
+		"type": "gnli",
+		"pretrained_model": "roberta-large",
+		"max_premise_length": 128,
+		"max_hypothesis_length": 80,
 		"percent_data": 0.001,
 	},
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": 0.2,
+		"discriminative_loss_weight": 0.1,
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : 32,
+		"batch_size" : 8,
 	},
 	"trainer": {
 		"cuda_device": 0,
@@ -25,7 +32,7 @@
 		"accumulation_steps": 8,
 		"optimizer": {
 			"type": "adamw",
-			"lr": 1e-5,
+			"lr": 3e-5,
 		},
 	},
 }

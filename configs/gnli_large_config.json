@@ -22,25 +22,25 @@
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": [0, 0.1, 0.25, 0.5, 0.8],
+		"discriminative_loss_weight": [0, 0.25, 0.5, 0.75],
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : [32],
+		"batch_size" : [8],
 	},
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 0,
-		"num_epochs": [10, 20, 30],
-		"accumulation_steps": 16,
+		"num_epochs": [20, 30, 40],
+		// "accumulation_steps": 8,
 		"half_precision": true,
 		"opt_level": "O2",
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
-		"warmup_proportion": [0, 0.06],
+		"warmup_proportion": [0.06],
 		"optimizer": {
 			"type": "adamw",
-			"lr": [1e-5],
+			"lr": [3e-5, 5e-5, 1e-4],
 			"betas": [0.9, 0.98],
 			"weight_decay": [0.01, 0.02],
 			"parameter_groups": [

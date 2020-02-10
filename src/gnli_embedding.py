@@ -52,5 +52,5 @@ class GNLIEmbedding(Module):
 		
 		token_embeds = self.embed_tokens(input_tokens)
 		label_embeds = self.embed_labels(input_labels)
-		input_embeds = token_embeds + label_embeds
+		input_embeds = (token_embeds + label_embeds)*.5
 		return input_embeds
