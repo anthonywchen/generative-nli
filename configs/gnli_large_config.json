@@ -30,8 +30,8 @@
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 1,
-		"num_epochs": [20, 30, 40],
+		"cuda_device": 2,
+		"num_epochs": [60],
 		"half_precision": true,
 		"opt_level": "O2",
 		"num_serialized_models_to_keep": 0,
@@ -39,8 +39,8 @@
 		"warmup_proportion": [0.06],
 		"optimizer": {
 			"type": "adamw",
-			"lr": [3e-5, 5e-5, 1e-4],
-			"betas": [0.9, 0.999],
+			"lr": [1e-5, 2e-5, 3e-5, 5e-5, 1e-4],
+			"betas": [0.9, 0.98],
 			"weight_decay": [0.01, 0.02],
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],
