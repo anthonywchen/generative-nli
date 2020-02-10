@@ -10,7 +10,6 @@
 		"lazy": false,
 		"pretrained_model": "roberta-large",
 		"max_seq_length": 128,
-		"percent_data": 0.001,
 	},
 	"validation_dataset_reader": {
 		"type": "bertnli",
@@ -34,19 +33,18 @@
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 3,
-		"num_epochs": [3, 5, 10, 15],
-		"accumulation_steps": 32,
+		"cuda_device": 1,
+		"num_epochs": [3],
 		"half_precision": true,
 		"opt_level": "O2", 
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
-		"warmup_proportion": [0, 0.06],
+		"warmup_proportion": [0.06],
 		"optimizer": {
 			"type": "adamw",
-			"lr": [1e-5, 2e-5],
+			"lr": [3e-6],
 			"betas": [0.9, 0.98],
-			"weight_decay": [0.01, 0.02],
+			"weight_decay": [0.01],
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],
 			],
