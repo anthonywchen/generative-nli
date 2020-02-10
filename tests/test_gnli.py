@@ -37,7 +37,7 @@ class Tests(AllenNlpTestCase):
 		assert gnli._bart.encoder.embed_tokens == gnli._bart.decoder.embed_tokens
 
 		# Check that GNLI and original BART token embeddings values match
-		assert torch.all(list(gnli._bart.encoder.embed_tokens.embed_tokens.parameters())[0] == list(bart.encoder.embed_tokens.parameters())[0]).item()
+		assert torch.all(list(gnli._bart.encoder.embed_tokens.embed_tokens.parameters())[0] == list(bart.encoder.embed_tokens.parameters())[0][:-3]).item()
 
 	def test_training(self):
 		""" 

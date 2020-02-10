@@ -12,8 +12,6 @@ from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics.average import Average
 from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
 
-from src.gnli_embedding import GNLIEmbedding
-
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
@@ -37,21 +35,31 @@ class GNLI(Model):
 	"""
 	@property
 	def vocab_size(self):
-		return self._bart.encoder.embed_tokens.num_token_embeddings
+		return self._bart.encoder.embed_tokens.num_embeddings
 
 	@property
 	def label_size(self):
-		return self._bart.encoder.embed_tokens.num_label_embeddings
+		return 3
 
-	def _create_embeddings(self):
-		# Create the new embedding layer for GNLI
-		gnli_embeddings = GNLIEmbedding(self._bart.encoder.embed_tokens, num_labels=3)
+	def _extend_embeddings(self):
+		""" Extends the embeddings in the encoder and decoder by three for the 
+		class embeddings.
+		Code based on HuggingFace Transformer repository.
+		"""
+		old_embeddings = self._bart.encoder.embed_tokens
+		old_num_tokens, embedding_dim = old_embeddings.weight.size()
 
-		# Set the encoder embedding for GNLI and tie the encoder and decoder embeddings
-		self._bart.encoder.embed_tokens = gnli_embeddings
+		# Build new embeddings and copy the word embeddings from the previous weights
+		new_num_tokens = old_num_tokens + 3
+		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim, padding_idx=old_embeddings.padding_idx)
+		new_embeddings.to(old_embeddings.weight.device)
+		new_embeddings.weight.data[:old_num_tokens, :] = old_embeddings.weight.data[:old_num_tokens, :]
+
+		# Set the encoder to use the new embeddings and tie the encoder and decoder embeddings.
+		self._bart.encoder.embed_tokens = new_embeddings
 		self._bart.decoder.embed_tokens = self._bart.encoder.embed_tokens
-		assert self._bart.encoder.embed_tokens == self._bart.decoder.embed_tokens
-
+		assert self._bart.decoder.embed_tokens == self._bart.encoder.embed_tokens
+		
 	def __init__(self, 
 				 pretrained_model: str,
 				 discriminative_loss_weight: float = 0,
@@ -64,7 +72,7 @@ class GNLI(Model):
 
 		# Load in BART and extend the embeddings layer by three for the label embeddings.
 		self._bart = torch.hub.load('pytorch/fairseq', pretrained_model).model
-		self._create_embeddings()
+		self._extend_embeddings()
 
 		# Ignore padding indices when calculating generative loss.
 		assert self._bart.encoder.padding_idx == 1
@@ -89,7 +97,7 @@ class GNLI(Model):
 				metadata = None):
 		batch_size, hypothesis_length = target.size()
 		premise_length = src.size(-1)
-		assert src.size(1) == self.label_size == 3
+		assert src.size(1) == self.label_size
 
 		## Before feeding tensors through BART, merge the batch size and number of classes dimensions
 		src 				= src.resize(batch_size*self.label_size, premise_length)
@@ -194,7 +202,7 @@ class GNLI(Model):
 		by calculating the autoregressive probability over the hypothesis tokens. 
 		p(hypothesis | premise, class ) is treated as the logit for that class.
 		"""
-		batch_size, _, _ = hypothesis_probabilities.size()
+		batch_size = hypothesis_probabilities.size(0)
 		log_hypothesis_probabilities = torch.log10(hypothesis_probabilities)
 
 		# Sum the probabiltiies of the hypothesis tokens up to the length of the hypothesis (without padding)

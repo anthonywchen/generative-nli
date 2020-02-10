@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 from overrides import overrides
-from pytorch_transformers import RobertaTokenizer
 import random
 from typing import Callable, Dict, Iterable, Iterator, List
 
@@ -11,7 +10,7 @@ from allennlp.data.fields import ArrayField
 from allennlp.data.fields.metadata_field import MetadataField
 from allennlp.data.instance import Instance
 
-# from src.gnli_tokenizer import GNLITokenizer
+from src.gnli_tokenizer import GNLITokenizer
 from src import utils 
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -30,7 +29,7 @@ class GNLIDatasetReader(DatasetReader):
 		self.max_premise_length = max_premise_length
 		self.max_hypothesis_length = max_hypothesis_length
 
-		self._tokenizer = RobertaTokenizer.from_pretrained(pretrained_model)
+		self._tokenizer = GNLITokenizer.from_pretrained(pretrained_model)
 		self._label_dict = {'entailment': 0, 'neutral': 1, 'contradiction': 2}
 
 	@overrides
@@ -55,8 +54,12 @@ class GNLIDatasetReader(DatasetReader):
 		####################
 
 		## Create encoder inputs
-		src = self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids(premise_tokens))
-		src_length = len(src)
+		src = []
+		src.append(self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids([self._tokenizer.entail_token]+premise_tokens)))
+		src.append(self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids([self._tokenizer.neutral_token]+premise_tokens)))
+		src.append(self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids([self._tokenizer.contradict_token]+premise_tokens)))
+		assert len(src[0]) == len(src[1]) == len(src[2])
+		src_length = len(src[0])
 
 		## Create decoder inputs and targets
 		# Targets of the decoder: [<s> A B C D E <\s>]
@@ -71,7 +74,7 @@ class GNLIDatasetReader(DatasetReader):
 		# Pad the premise ids (the source)
 		if self.max_premise_length:
 			encoder_padding = [self._tokenizer.pad_token_id]*(self.max_premise_length - src_length)
-			src += encoder_padding
+			src = [s + encoder_padding for s in src] 
 
 		# Pad the hypothesis ids (the target)
 		if self.max_hypothesis_length:
@@ -79,8 +82,7 @@ class GNLIDatasetReader(DatasetReader):
 			target += decoder_padding
 			prev_output_tokens += decoder_padding
 
-		# Replicate `src`, `prev_output_tokens`, and the `src_lengths` three times
-		src = [src]*3
+		# Replicate `prev_output_tokens` and `src_lengths` three times
 		prev_output_tokens = [prev_output_tokens]*3
 		src_length = [src_length]*3
 
@@ -107,8 +109,8 @@ class GNLIDatasetReader(DatasetReader):
 
 	def _truncate_input(self, premise_tokens, hypothesis_tokens):
 		if self.max_premise_length:
-			# Account for [<s>] + premise_tokens + [</s>]
-			max_premise_length = self.max_premise_length - 2
+			# Account for [<s>] + label_token + premise_tokens + [</s>]
+			max_premise_length = self.max_premise_length - 3
 			premise_tokens = premise_tokens[:max_premise_length]
 
 		if self.max_hypothesis_length:
