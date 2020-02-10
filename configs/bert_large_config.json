@@ -7,14 +7,12 @@
 	"datasets_for_vocab_creation": [],
 	"dataset_reader": {
 		"type": "bertnli",
-		"lazy": false,
 		"pretrained_model": "bert-large-uncased",
 		"max_seq_length": 128,
 		"percent_data": 0.001,
 	},
 	"validation_dataset_reader": {
 		"type": "bertnli",
-		"lazy": false,
 		"pretrained_model": "bert-large-uncased",
 		"max_seq_length": 128,
 	},
@@ -36,7 +34,6 @@
 		"type": "apextrainer",
 		"cuda_device": 0,
 		"num_epochs": [3, 5, 10, 15], 
-		"accumulation_steps": 32,
 		"half_precision": true,
 		"opt_level": "O2", 
 		"num_serialized_models_to_keep": 0,

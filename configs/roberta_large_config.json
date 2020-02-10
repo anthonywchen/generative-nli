@@ -7,13 +7,11 @@
 	"datasets_for_vocab_creation": [],
 	"dataset_reader": {
 		"type": "bertnli",
-		"lazy": false,
 		"pretrained_model": "roberta-large",
 		"max_seq_length": 128,
 	},
 	"validation_dataset_reader": {
 		"type": "bertnli",
-		"lazy": false,
 		"pretrained_model": "roberta-large",
 		"max_seq_length": 128,
 	},
