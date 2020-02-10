@@ -13,7 +13,7 @@ import sys
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 TUNABLE_PARAMETERS = ['batch_size', 'discriminative_loss_weight', 'lr', 'num_epochs', 'weight_decay', 'warmup_proportion']
-NUM_RUNS = 3
+NUM_RUNS = 1
 
 class ConfigIterator:
 	def __init__(self, config):
