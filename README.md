@@ -68,6 +68,6 @@ For each run, this evaluates the trained model on out-of-domain datasets (RTE, S
 - [x] Add calculation of losses and the mixing
 - [ ] More information when calculating generalization
 - [ ] Why high disc loss but low accuracy - 1 day
-- [ ] Best LR for bs = 16? - 1 day 
+- [x] Best LR for bs = 16? - 1 day 
 - [ ] Train on all data? - 1 day
 - [ ] Adding label embed in decoding layer? - 2 day
