@@ -34,11 +34,10 @@ Here are the results I got using the configs in `configs/` across three runs.
 
 | Model | My Results on MNLI Matched Dev | Official Results on MNLI Matched Dev |
 | ------------- |:-------------:| :-----:|
-| bert-base      | 84.5 ± 0.2 | 84.4 |
-| bert-large      | 86.6 ± 0.1      |  86.6|
-| roberta-base | 87.8 ± 0.1      |    87.6 |
+| bert-base      | 84.6 ± 0.2 | 84.4 |
+| bert-large      | 86.5 ± 0.2      |  86.6|
+| roberta-base | 87.7 ± 0.1      |    87.6 |
 | roberta-large | 90.6 ± 0.2      |    90.2 |
-
 
 ## Evaluation of BERT and ROBERTa on Out-Of-Domain Datasets
 To evaluate the generalization of a trained model (across runs), on out-of-domain datasets, run
@@ -64,8 +63,11 @@ For each run, this evaluates the trained model on out-of-domain datasets (RTE, S
 - [x] Are the weights of the encoder and the decoder tied? yes
 - [x] How to add 3 new embeddings for the labels?
 - [x] Add tests for BART dataset reader
-- [ ] Add tests for the calculation of the logits
-- [ ] Add tests for model training
+- [x]  Add tests for the calculation of the logits
+- [x] Add tests for model training
 - [x] Add calculation of losses and the mixing
-
-
+- [ ] More information when calculating generalization
+- [ ] Why high disc loss but low accuracy - 1 day
+- [ ] Best LR for bs = 16? - 1 day 
+- [ ] Train on all data? - 1 day
+- [ ] Adding label embed in decoding layer? - 2 day
