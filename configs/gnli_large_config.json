@@ -20,11 +20,11 @@
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": [0.9],
+		"discriminative_loss_weight": [0.8],
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : [16],
+		"batch_size" : [32],
 	},
 	"trainer": {
 		"type": "apextrainer",
@@ -32,13 +32,14 @@
 		"num_epochs": [3],
 		"patience": 10,
 		"half_precision": true,
+		"accumulation_steps": 16,
 		"opt_level": "O2",
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
 		"warmup_proportion": 0.06,
 		"optimizer": {
 			"type": "adamw",
-			"lr": [3e-5],
+			"lr": [1e-5],
 			"betas": [0.9, 0.98],
 			"weight_decay": 0.01,
 			"parameter_groups": [
