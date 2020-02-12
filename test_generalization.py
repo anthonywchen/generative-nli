@@ -32,6 +32,8 @@ def load_predictor(serialization_dir, device):
 	# Turn off truncation of the inputs
 	if model_name == 'gnli':
 		pass
+		# dataset_reader_params.params['max_premise_length'] = None
+		# dataset_reader_params.params['max_hypothesis_length'] = None
 	elif model_name == 'bertnli':
 		dataset_reader_params.params['max_seq_length'] = None
 	else:
@@ -73,33 +75,46 @@ def predict_file(predictor, file_path, serialization_dir):
 	print('Scoring ', dataset)
 
 	# Load in all data points first
-	instances, tags, labels = [], [], []
-
+	data = []
 	for line in Reader(open(file_path)):
-		instances.append(predictor._dataset_reader.text_to_instance(premise=line['premise'], hypothesis=line['hypothesis']))
-		labels.append(line['label'])
-		if 'tag' in line:
-			tags.append(line['tag'])
-		else:
-			tags.append(None)
-	
-	total = len(instances)
+		data.append({'instance': predictor._dataset_reader.text_to_instance(premise=line['premise'], hypothesis=line['hypothesis']),
+					 'tag': 	 line['tag'] if 'tag' in line else None,
+					 'label': 	 line['label']})
+	total = len(data)
+
+	# Write the the output dicts to file
+	if not os.path.isdir(join(serialization_dir, 'preds')):
+		os.mkdir(join(serialization_dir, 'preds'))
 
 	# Feed instances through model in batches
 	output_dicts = []
 
-	for start_idx in tqdm(range(0, total, BATCH_SIZE)):
-		batch_instances = instances[start_idx:start_idx+BATCH_SIZE]
-		output_dicts += predictor.predict_batch_instance(batch_instances)
+	with open(join(serialization_dir, 'preds', dataset + '_preds.jsonl'), 'w') as writer:
+		for start_idx in tqdm(range(0, total, BATCH_SIZE)):
+			current_data = data[start_idx:start_idx+BATCH_SIZE]
+			batch_instances = [e['instance'] for e in current_data]
+			batch_outputs = predictor.predict_batch_instance(batch_instances)
+			
+			# Write outputs to file
+			for o, d in zip(batch_outputs, current_data):
+				o['label'] 	= d['label']
+				o['tag'] 	= d['tag']
+				writer.write(dumps(o) + '\n')
+				
+				# Delete unneeded keys for calculating best probs
+				o  = {k: o[k] for k in o if k in ['class_probabilities', 'predicted_label']}
+				output_dicts.append(o)
 
-	assert len(output_dicts) == len(labels) == len(tags) == total
+	assert len(output_dicts) == len(data)
 
 	# Compute accuracy statistics
 	tag_set = set()
 	tag_scores = {}
 	num_correct = 0
 
-	for output_dict, tag, label in zip(output_dicts, tags, labels):
+	for output_dict, d in zip(output_dicts, data):
+		label 	= d['label']
+		tag 	= d['tag']
 		if tag:
 			if tag not in tag_set:
 				tag_set.add(tag)
