@@ -35,7 +35,7 @@ class GNLI(Model):
 	"""
 	@property
 	def vocab_size(self):
-		return self._bart.encoder.embed_tokens.num_embeddings
+		return self._bart.encoder.embed_tokens.num_embeddings - self.label_size
 
 	@property
 	def label_size(self):
@@ -50,7 +50,7 @@ class GNLI(Model):
 		old_num_tokens, embedding_dim = old_embeddings.weight.size()
 
 		# Build new embeddings and copy the word embeddings from the previous weights
-		new_num_tokens = old_num_tokens + 3
+		new_num_tokens = old_num_tokens + self.label_size
 		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim, padding_idx=old_embeddings.padding_idx)
 		new_embeddings.to(old_embeddings.weight.device)
 		new_embeddings.weight.data[:old_num_tokens, :] = old_embeddings.weight.data[:old_num_tokens, :]
@@ -64,6 +64,7 @@ class GNLI(Model):
 				 pretrained_model: str,
 				 discriminative_loss_weight: float = 0,
 				 vocab: Vocabulary = Vocabulary(),
+				 softmax_over_vocab: bool = False,
 				 initializer: InitializerApplicator = InitializerApplicator()) -> None:
 		super(GNLI, self).__init__(vocab)
 		# Check the arguments of `__init__()`.
@@ -79,6 +80,13 @@ class GNLI(Model):
 		self._generative_loss_fn 		 = torch.nn.CrossEntropyLoss(ignore_index=self._bart.encoder.padding_idx)
 		self._discriminative_loss_fn 	 = torch.nn.NLLLoss()
 		self._discriminative_loss_weight = discriminative_loss_weight
+
+		self._softmax_over_vocab = softmax_over_vocab
+		if self._softmax_over_vocab:
+			self.effective_vocab_size = self.vocab_size
+		else:
+			self.effective_vocab_size = self.vocab_size + self.label_size
+
 		self.metrics 					 = {'accuracy': CategoricalAccuracy(), 'disc_loss': Average(), 'gen_loss': Average()}
 
 		initializer(self)
@@ -106,12 +114,15 @@ class GNLI(Model):
 		## Feed tensors through BART model, which returns the logits from the decoder.
 		# A set of logits is returned for each token in `prev_output_tokens` over the vocabulary.
 		# Then unsqueeze the first dimension and convert to a float (for half-precision training)
-		# decoder_logits.size() = [batch_size*3, hypothesis_length, vocab_size]
+		# decoder_logits.size() = [batch_size*3, hypothesis_length, vocab_size + label_size]
 		decoder_logits, _ = self._bart(src_tokens=src,
 									   src_lengths=src_lengths,
 									   prev_output_tokens=prev_output_tokens)
-		decoder_logits = decoder_logits.resize(batch_size, self.label_size, hypothesis_length, self.vocab_size).float()
-		
+		# Get outputs over the vocab, not the label
+		if self._softmax_over_vocab:
+			decoder_logits = decoder_logits[:, :, :self.vocab_size]
+		decoder_logits = decoder_logits.resize(batch_size, self.label_size, hypothesis_length, self.effective_vocab_size).float()
+
 		## Calculate the probability at each decoder timestep of seeing the next hypothesis token (i.e. the target token).
 		# This is useful for visualizing what token most strongly influences the classification decision.
 		
@@ -166,14 +177,18 @@ class GNLI(Model):
 			## Extract from the decoder logits the logits over the correct class
 			# Expand the labels to match the # of dimensions of the decoder logits
 			# label_expanded.size() = [batch_size, 1, hypothesis_length, vocab_size]
-			label_expanded = label.resize(batch_size, 1, 1, 1).repeat(1, 1, hypothesis_length, self.vocab_size)
+			label_expanded = label.resize(batch_size, 1, 1, 1).repeat(1, 1, hypothesis_length, self.effective_vocab_size)
+			
 			# correct_class_decoder_logits.size() = [batch_size, hypothesis_length, vocab_size]
 			correct_class_decoder_logits = torch.gather(decoder_logits, dim=1, index=label_expanded).squeeze(1)
-			assert list(correct_class_decoder_logits.size()) == [batch_size, hypothesis_length, self.vocab_size]
+			if self._softmax_over_vocab:
+				assert list(correct_class_decoder_logits.size()) == [batch_size, hypothesis_length, self.vocab_size]
+			else:
+				assert list(correct_class_decoder_logits.size()) == [batch_size, hypothesis_length, self.vocab_size+self.label_size]
 
 			# Resize the correct class decoder logits and the targets to be 2D and 1D respectively
 			# before calculating the generative loss since CrossEntropyLoss() expects these dimensions.
-			correct_class_decoder_logits = correct_class_decoder_logits.resize(batch_size*hypothesis_length, self.vocab_size)
+			correct_class_decoder_logits = correct_class_decoder_logits.resize(batch_size*hypothesis_length, self.effective_vocab_size)
 			target = target.resize(batch_size*hypothesis_length)
 
 			generative_loss = self._generative_loss_fn(correct_class_decoder_logits, target)

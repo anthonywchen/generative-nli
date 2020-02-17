@@ -19,7 +19,7 @@
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": 0.1,
+		"discriminative_loss_weight": 0.5,
 	},
 	"iterator": {
 		"type": "basic",
