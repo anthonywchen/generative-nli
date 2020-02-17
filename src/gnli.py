@@ -103,25 +103,9 @@ class GNLI(Model):
 				label: torch.Tensor = None,	 		# [batch_size]
 				metadata = None):
 		batch_size, hypothesis_length = target.size()
-		premise_length = src.size(-1)
 		assert src.size(1) == self.label_size
 
-		## Before feeding tensors through BART, merge the batch size and number of classes dimensions
-		src 				= src.resize(batch_size*self.label_size, premise_length)
-		src_lengths 		= src_lengths.resize(batch_size*self.label_size)
-		prev_output_tokens 	= prev_output_tokens.resize(batch_size*self.label_size, hypothesis_length)
-		
-		## Feed tensors through BART model, which returns the logits from the decoder.
-		# A set of logits is returned for each token in `prev_output_tokens` over the vocabulary.
-		# Then unsqueeze the first dimension and convert to a float (for half-precision training)
-		# decoder_logits.size() = [batch_size*3, hypothesis_length, vocab_size + label_size]
-		decoder_logits, _ = self._bart(src_tokens=src,
-									   src_lengths=src_lengths,
-									   prev_output_tokens=prev_output_tokens)
-		# Get outputs over the vocab, not the label
-		if self._softmax_over_vocab:
-			decoder_logits = decoder_logits[:, :, :self.vocab_size]
-		decoder_logits = decoder_logits.resize(batch_size, self.label_size, hypothesis_length, self.effective_vocab_size).float()
+		decoder_logits = self.bart_forward(src, src_lengths, prev_output_tokens)
 
 		## Calculate the probability at each decoder timestep of seeing the next hypothesis token (i.e. the target token).
 		# This is useful for visualizing what token most strongly influences the classification decision.
@@ -205,6 +189,43 @@ class GNLI(Model):
 									  (1-self._discriminative_loss_weight)*generative_loss
 
 		return output_dict
+
+	def bart_forward(self, src, src_lengths, prev_output_tokens):
+		batch_size, _, premise_length = src.size()
+		hypothesis_length = prev_output_tokens.size(-1)
+
+		## Before feeding tensors through BART, merge the batch size and number of classes dimensions
+		src 				= src.resize(batch_size*self.label_size, premise_length)
+		src_lengths 		= src_lengths.resize(batch_size*self.label_size)
+		prev_output_tokens 	= prev_output_tokens.resize(batch_size*self.label_size, hypothesis_length)
+		
+		## BART returns the final hidden states of the decoder over `prev_output_tokens`.		
+		# decoder_features.size() = [batch_size*3, hypothesis_length, hidden_dim]
+		decoder_features, _ = self._bart(src_tokens=src,
+									     src_lengths=src_lengths,
+									     prev_output_tokens=prev_output_tokens,
+									     features_only=True)
+
+		## Pass features through a GLU using the label embeddings as gating input
+		labels = torch.Tensor(range(self.label_size)).type_as(src)
+		# labels.size() = [batch_size*3, hypothesis_length]
+		labels = labels.unsqueeze(-1).repeat(batch_size, hypothesis_length)
+		label_embeds = self._bart.encoder.embed_tokens(labels)
+
+		# glu_input.size() = [batch_size*3, hypothesis_length, hidden_dim*2]
+		glu_input = torch.cat((decoder_features, label_embeds), dim=-1)
+		decoder_features = torch.nn.functional.glu(glu_input)
+
+		## Compute the logits over the vocabulary
+		decoder_logits = self._bart.decoder.output_layer(decoder_features)
+
+		## Get outputs over the vocab, not the label
+		if self._softmax_over_vocab:
+			decoder_logits = decoder_logits[:, :, :self.vocab_size]
+
+		## Unsqueeze the first dimension and convert to float (in case of half-prec training)
+		decoder_logits = decoder_logits.resize(batch_size, self.label_size, hypothesis_length, self.effective_vocab_size).float()
+		return decoder_logits
 
 	def calculate_class_logits(self, hypothesis_probabilities, target_lengths):
 		""" Calculates the class logits from the probabilties of the hypothesis tokens.

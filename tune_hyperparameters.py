@@ -13,7 +13,6 @@ import sys
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 TUNABLE_PARAMETERS = ['batch_size', 'discriminative_loss_weight', 'lr', 'num_epochs', 'weight_decay', 'warmup_proportion']
-NUM_RUNS = 3
 
 class ConfigIterator:
 	def __init__(self, config):
@@ -99,6 +98,7 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('param_path', type=str, help='path to parameter file describing the model to be trained')
 	parser.add_argument('-s', '--serialization_dir', type=str, help='path to serialization_dir with the different runs')
+	parser.add_argument('-n', '--num_runs', type=int, default=3, help='# of different runs')
 	args = parser.parse_args()
 
 	sha = get_commit_hash()
@@ -118,7 +118,7 @@ def main():
 		# Create command command
 		cmd = 'python train.py ' + args.param_path
 		cmd += ' -o ' + "'" + dumps(c) + "'"  
-		cmd += ' --num_runs ' + str(NUM_RUNS)
+		cmd += ' --num_runs ' + str(args.num_runs)
 		cmd += ' --include-package src'
 		cmd += ' -s ' + serialization_dir
 		cmd += ' --sha ' + str(sha)
