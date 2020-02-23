@@ -3,10 +3,10 @@ apex/
 generative-nli-env*
 log/
 notebooks/
-out/
 raw_data/
 tests/*/*
 vocabulary/
+out
 *.bin
 *.log
 *.swp
