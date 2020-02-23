@@ -1,7 +1,6 @@
 __pycache__/
 apex/
 generative-nli-env*
-data/*/*
 log/
 notebooks/
 out/
