@@ -22,7 +22,7 @@
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": [0.8],
+		"discriminative_loss_weight": [0],
 	},
 	"iterator": {
 		"type": "basic",
@@ -30,7 +30,7 @@
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 2,
+		"cuda_device": 3,
 		"num_epochs": [4],
 		"patience": 15,
 		"half_precision": true,
