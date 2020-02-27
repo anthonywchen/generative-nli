@@ -4,11 +4,11 @@ import git
 from json import load, loads, dumps
 from _jsonnet import evaluate_file
 import itertools
-from pprint import pprint
 import logging
-import os
 from os.path import isdir, join
 import sys
+
+from train import train
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -103,28 +103,22 @@ def main():
 
 	sha = get_commit_hash()
 	config = loads(evaluate_file(args.param_path))
-
 	config_iterator = ConfigIterator(config)
 
 	for c, params in config_iterator:
 		# Name this config's serialization directory and check that it doesn't exist
-		serialization_dir = args.serialization_dir
-		serialization_dir = join(serialization_dir, '_'.join([str(v) + '_' + k.split('.')[-1] for k, v in params.items()]))
+		serialization_dir = join(args.serialization_dir, '_'.join([str(v) + '_' + k.split('.')[-1] for k, v in params.items()]))
 
 		if isdir(serialization_dir):
 			print(serialization_dir + ' already exists...')
 			continue
 
-		# Create command command
-		cmd = 'python train.py ' + args.param_path
-		cmd += ' -o ' + "'" + dumps(c) + "'"  
-		cmd += ' --num_runs ' + str(args.num_runs)
-		cmd += ' --include-package src'
-		cmd += ' -s ' + serialization_dir
-		cmd += ' --sha ' + str(sha)
-
-		# Train this config
-		os.system(cmd)
+		train(param_path=args.param_path,
+			  serialization_dir=serialization_dir,
+			  num_runs=args.num_runs,
+			  overrides=dumps(c),
+			  include_package=['src'],
+			  sha=str(sha))
 
 if __name__ == '__main__':
 	main()

@@ -103,15 +103,22 @@ def aggregate_training_run_metrics(head_serialization_dir, num_runs):
 	with open(output_file, 'w') as writer:
 		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
 
-def train():
-	# Load command line arguments
-	args = get_train_args()
-
+def train(param_path, 
+		  serialization_dir, 
+		  num_runs,
+		  overrides = "", 
+		  file_friendly_logging = False, 
+		  recover = False, 
+		  force = False, 
+		  cache_directory = None, 
+		  cache_prefix = None, 
+		  include_package = [],
+		  sha = None):
 	# Get the commit hash if it hasn't been passed in
-	sha = args['sha'] if args['sha'] else get_commit_hash()
+	sha = sha if sha else get_commit_hash()
 	
 	# Load config file if it isn't passed in
-	config = parse_overrides(args['overrides']) if args['overrides'] else loads(evaluate_file(args['param_path']))
+	config = parse_overrides(overrides) if overrides else loads(evaluate_file(param_path))
 
 	# Set the cuda device as a environment variable, since there are issues
 	# setting the GPU as GPU1 with apex.
@@ -120,7 +127,7 @@ def train():
 		config['trainer']['cuda_device'] = 0
 
 	# Create the (head) serialization directory
-	head_serialization_dir = args['serialization_dir']
+	head_serialization_dir = serialization_dir
 	if not isdir(head_serialization_dir):
 		os.mkdir(head_serialization_dir)
 
@@ -129,26 +136,25 @@ def train():
 		f.write(sha)
 
 	# Import any additional modules needed (to register custom classes).
-	for package_name in args['include_package']:
+	for package_name in include_package:
 		import_submodules(package_name)
 			
 	# Iterate through the runs, modifying the seeds per run
-	num_runs = args.pop('num_runs')
-	for run_number in range(num_runs):
+	for run_number in range(int(num_runs)):
 		# Modify the serialization directory by creating a subdirectory `head_serialization_dir/run_number`
-		args['serialization_dir'] = join(head_serialization_dir, str(run_number))
+		serialization_dir = join(head_serialization_dir, str(run_number))
 		
-		# Modify the `overrides` arg so that we use the modified config 
-		args['overrides'] = dumps(config)
+		# Modify `overrides` so that we use the modified config 
+		overrides = dumps(config)
 
-		train_model_from_file(args['param_path'],
-							  args['serialization_dir'],
-							  args['overrides'],
-							  args['file_friendly_logging'],
-							  args['recover'],
-							  args['force'],
-							  args['cache_directory'],
-							  args['cache_prefix'])
+		train_model_from_file(parameter_filename=param_path, 
+							  serialization_dir=serialization_dir,
+							  overrides=overrides,
+							  file_friendly_logging=file_friendly_logging,
+							  recover=recover,
+							  force=force,
+							  cache_directory=cache_directory,
+							  cache_prefix=cache_prefix)
 
 		# Grab the seeds and write them to file, since allennlp doesn't save seeds in `serialization_dir`
 		seed_dict = {k: config[k] for k in ('pytorch_seed','random_seed','numpy_seed')}
@@ -163,4 +169,5 @@ def train():
 	aggregate_training_run_metrics(head_serialization_dir, num_runs)
 
 if __name__ == '__main__':
-	train()
+	args = get_train_args()
+	train(**args)
