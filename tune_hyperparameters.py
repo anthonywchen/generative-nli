@@ -99,6 +99,7 @@ def main():
 	parser.add_argument('param_path', type=str, help='path to parameter file describing the model to be trained')
 	parser.add_argument('-s', '--serialization_dir', type=str, help='path to serialization_dir with the different runs')
 	parser.add_argument('-n', '--num_runs', type=int, default=3, help='# of different runs')
+	parser.add_argument('-f', '--finetune_source', type=str, default="", help='path to directory that we can finetune')
 	args = parser.parse_args()
 
 	sha = get_commit_hash()
