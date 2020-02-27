@@ -10,16 +10,18 @@ two steps.
 2. 	Creating the serialization directory passed as an argument
 
 3. 	Iterating through the number of different seeds to try (from `num_runs` argument), 
-   	modifying the seed after each run. 
+	modifying the seed after each run. 
 
-   	For each run, we create and run an `allennlp train`
-   	command by stitching together the arguments passed by the user in `get_train_args()`.
+	For each run, we create and run an `allennlp train`
+	command by stitching together the arguments passed by the user in `get_train_args()`.
 
 	For example, if `serialization_dir` is `./tmp` and `num_runs` is 2, we will create two 
 	subdirectories, `./tmp/0` and `./tmp/1` and store two training runs in the two subdirectories
 	with different random seeds.
 """
 from allennlp.common.params import parse_overrides
+from allennlp.commands.train import train_model_from_file
+from allennlp.common.util import import_submodules
 import argparse
 import git
 from json import load, loads, dumps
@@ -57,7 +59,7 @@ def get_train_args():
 	parser.add_argument('param_path', type=str,
 						   help='path to parameter file describing the model to be trained')
 	parser.add_argument('--include-package', type=str, action='append', default=[],
-                           help='additional packages to include')
+						   help='additional packages to include')
 	parser.add_argument('-s', '--serialization-dir', required=True, type=str,
 						   help='directory in which to save the model and its logs')
 	parser.add_argument('-r', '--recover', action='store_true', default=False,
@@ -67,7 +69,7 @@ def get_train_args():
 	parser.add_argument('-o', '--overrides', type=str, default="", 
 						   help='a JSON structure used to override the experiment configuration')
 	parser.add_argument('--file-friendly-logging', action='store_true', default=False, 
-		 				   help='outputs tqdm status on separate lines and slows tqdm refresh rate')
+						   help='outputs tqdm status on separate lines and slows tqdm refresh rate')
 	parser.add_argument('--cache-directory', type=str, default='', 
 						   help='Location to store cache of data preprocessing')
 	parser.add_argument('--cache-prefix', type=str, default='',
@@ -81,29 +83,6 @@ def get_train_args():
 	args = parser.parse_args()
 	args_dict = vars(args)
 	return args_dict
-
-def construct_train_command(args):
-	""" 
-	Takes the arguments and constructs a shell command by stitching the arguments
-	into a `allennlp train` command
-	"""
-	cmd = 'allennlp train'
-	for arg, value in args.items():
-		if not value:
-			continue
-		if type(value) == list:
-			for v in value:
-				cmd += ' --' + arg.replace('_', '-') + ' ' + v
-			continue
-		if type(value) == bool:
-			value = ''
-
-		if arg == 'param_path':
-			cmd += ' ' + value
-		else: # Argparse replaces dashes with underscores so convert back in a very hacky way
-			cmd += ' --' + arg.replace('_', '-') + ' ' + value
-
-	return cmd
 
 def aggregate_training_run_metrics(head_serialization_dir, num_runs):
 	""" Aggregates validation metrics across the training runs """
@@ -129,14 +108,11 @@ def train():
 	args = get_train_args()
 
 	# Get the commit hash if it hasn't been passed in
-	if args['sha']:
-		sha = args['sha'] 
-	else:
-		sha = get_commit_hash()
-	del args['sha']
-
+	sha = args['sha'] if args['sha'] else get_commit_hash()
+	
 	# Load config file if it isn't passed in
 	config = parse_overrides(args['overrides']) if args['overrides'] else loads(evaluate_file(args['param_path']))
+
 	# Set the cuda device as a environment variable, since there are issues
 	# setting the GPU as GPU1 with apex.
 	if 'cuda_device' in config['trainer']:
@@ -152,6 +128,10 @@ def train():
 	with open(join(head_serialization_dir, 'hash.txt'), 'w') as f:
 		f.write(sha)
 
+	# Import any additional modules needed (to register custom classes).
+	for package_name in args['include_package']:
+		import_submodules(package_name)
+			
 	# Iterate through the runs, modifying the seeds per run
 	num_runs = args.pop('num_runs')
 	for run_number in range(num_runs):
@@ -159,11 +139,16 @@ def train():
 		args['serialization_dir'] = join(head_serialization_dir, str(run_number))
 		
 		# Modify the `overrides` arg so that we use the modified config 
-		args['overrides'] = "'" + dumps(config) + "'" # Wrap in quotes for bash
+		args['overrides'] = dumps(config)
 
-		# Construct the `allennlp train` command and run it
-		cmd = construct_train_command(args)
-		os.system(cmd)
+		train_model_from_file(args['param_path'],
+							  args['serialization_dir'],
+							  args['overrides'],
+							  args['file_friendly_logging'],
+							  args['recover'],
+							  args['force'],
+							  args['cache_directory'],
+							  args['cache_prefix'])
 
 		# Grab the seeds and write them to file, since allennlp doesn't save seeds in `serialization_dir`
 		seed_dict = {k: config[k] for k in ('pytorch_seed','random_seed','numpy_seed')}
