@@ -108,7 +108,11 @@ def main():
 
 	for c, params in config_iterator:
 		# Name this config's serialization directory and check that it doesn't exist
-		serialization_dir = join(args.serialization_dir, '_'.join([str(v) + '_' + k.split('.')[-1] for k, v in params.items()]))
+
+		serialization_dir = '_'.join([str(v) + '_' + k.split('.')[-1] for k, v in params.items()])
+		if args.finetune_source:
+			serialization_dir = 'finetune_' + serialization_dir
+		serialization_dir = join(args.serialization_dir, serialization_dir)
 
 		if isdir(serialization_dir):
 			print(serialization_dir + ' already exists...')
