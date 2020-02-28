@@ -92,7 +92,7 @@ def aggregate_training_run_metrics(head_serialization_dir, num_runs):
 	with open(output_file, 'w') as writer:
 		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
 
-def setup_environment(config, include_package, serialization_dir, sha):
+def setup_environment(config, include_package, finetune_source, serialization_dir, sha):
 	# Get the commit hash if it hasn't been passed in
 	sha = sha if sha else get_commit_hash()
 	
@@ -111,6 +111,11 @@ def setup_environment(config, include_package, serialization_dir, sha):
 	with open(join(serialization_dir, 'hash.txt'), 'w') as f:
 		f.write(sha)
 
+	# Write out the current commit hash to file
+	if finetune_source:
+		with open(join(serialization_dir, 'finetune_source.txt'), 'w') as f:
+			f.write(finetune_source + '\n')
+
 	# Import any additional modules needed (to register custom classes).
 	for package_name in include_package:
 		import_submodules(package_name)
@@ -124,7 +129,7 @@ def train(param_path, serialization_dir, num_runs, overrides = "", include_packa
 		for run_number in range(int(num_runs)):
 			assert isfile(join(finetune_source, str(run_number), 'model.tar.gz'))
 
-	setup_environment(config, include_package, serialization_dir, sha)
+	setup_environment(config, include_package, finetune_source, serialization_dir, sha)
 
 	# Iterate through the runs, modifying the seeds per run
 	head_serialization_dir = serialization_dir
