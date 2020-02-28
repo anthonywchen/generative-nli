@@ -10,7 +10,6 @@
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
 		"max_hypothesis_length": 80,
-		// "percent_data": 0.001,
 		"percent_data": 1,
 	},
 	"validation_dataset_reader": {
@@ -18,13 +17,12 @@
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
 		"max_hypothesis_length": 80,
-		// "percent_data": 0.1,
 		"percent_data": 1,
 	},
 	"model": {
 		"type": "gnli",
 		"pretrained_model": "bart.large",
-		"discriminative_loss_weight": [0.8],
+		"discriminative_loss_weight": [1],
 	},
 	"iterator": {
 		"type": "basic",
@@ -32,8 +30,8 @@
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 3,
-		"num_epochs": [4],
+		"cuda_device": 2,
+		"num_epochs": [1, 2],
 		"patience": 15,
 		"half_precision": true,
 		"accumulation_steps": 16,
@@ -43,7 +41,7 @@
 		"warmup_proportion": 0.06,
 		"optimizer": {
 			"type": "adamw",
-			"lr": [2e-5],
+			"lr": [1e-5],
 			"betas": [0.9, 0.98],
 			"weight_decay": 0.01,
 			"parameter_groups": [

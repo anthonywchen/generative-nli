@@ -28,7 +28,7 @@ from json import load, loads, dumps
 from _jsonnet import evaluate_file
 import logging
 import os
-from os.path import isdir, join
+from os.path import isdir, isfile, join
 from statistics import mean, stdev
 import sys
 
@@ -115,17 +115,26 @@ def setup_environment(config, include_package, serialization_dir, sha):
 	for package_name in include_package:
 		import_submodules(package_name)
 
-def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = None):
+def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = "", finetune_source=""):
 	# Load config file if it isn't passed in
 	config = parse_overrides(overrides) if overrides else loads(evaluate_file(param_path))
+	
+	# Check that we have `num_runs` pretrained models under `finetune_source`
+	if finetune_source:
+		for run_number in range(int(num_runs)):
+			assert isfile(join(finetune_source, str(run_number), 'model.tar.gz'))
+
 	setup_environment(config, include_package, serialization_dir, sha)
-			
+
 	# Iterate through the runs, modifying the seeds per run
 	head_serialization_dir = serialization_dir
 	for run_number in range(int(num_runs)):
 		# Write outputs to `head_serialization_dir/run_number`
 		serialization_dir = join(head_serialization_dir, str(run_number))
 		
+		if finetune_source:
+			config['trainer']['pretrained_model'] = join(finetune_source, str(run_number), 'model.tar.gz')
+
 		train_model_from_file(parameter_filename=param_path, 
 							  serialization_dir=serialization_dir,
 							  overrides=dumps(config))

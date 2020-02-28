@@ -119,7 +119,8 @@ def main():
 			  num_runs=args.num_runs,
 			  overrides=dumps(c),
 			  include_package=['src'],
-			  sha=str(sha))
+			  sha=str(sha),
+			  finetune_source=args.finetune_source)
 
 if __name__ == '__main__':
 	main()
