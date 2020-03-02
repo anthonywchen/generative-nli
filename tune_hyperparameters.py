@@ -84,9 +84,13 @@ def get_commit_hash():
 	sha: `string` the current hash of HEAD commite
 	"""
 	g = git.cmd.Git('.')
-	if 'nothing to commit, working tree clean' not in g.status():
-		print('Changes not yet committed')
-		sys.exit(1)
+	for status_line in g.status().split('\n'):
+		if 'modified:' in status_line:
+			if 'configs/' not in status_line:
+				print('Changes not yet committed')
+				sys.exit(1)
+			else:
+				print(status_line)
 
 	# Get current hash of HEAD
 	repo = git.Repo(search_parent_directories=True)
