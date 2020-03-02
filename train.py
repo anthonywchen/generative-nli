@@ -20,8 +20,6 @@ two steps.
 	with different random seeds.
 """
 from allennlp.common.params import parse_overrides
-from allennlp.commands.train import train_model_from_file
-from allennlp.common.util import import_submodules
 import argparse
 import git
 from json import load, loads, dumps
@@ -96,7 +94,7 @@ def aggregate_training_run_metrics(head_serialization_dir, num_runs):
 	with open(output_file, 'w') as writer:
 		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
 
-def setup_environment(config, include_package, finetune_source, serialization_dir, sha):
+def setup_environment(config, finetune_source, serialization_dir, sha):
 	# Get the commit hash if it hasn't been passed in
 	sha = sha if sha else get_commit_hash()
 	
@@ -120,9 +118,19 @@ def setup_environment(config, include_package, finetune_source, serialization_di
 		with open(join(serialization_dir, 'finetune_source.txt'), 'w') as f:
 			f.write(finetune_source + '\n')
 
-	# Import any additional modules needed (to register custom classes).
-	for package_name in include_package:
-		import_submodules(package_name)
+def construct_train_command(param_path, serialization_dir, overrides, include_package):
+	""" 
+	Takes the arguments and constructs a shell command by stitching the arguments
+	into a `allennlp train` command
+	"""
+	cmd = 'allennlp train ' + param_path
+	cmd += ' -s ' + serialization_dir
+	cmd += ' -o ' + overrides
+	for p in include_package:
+		cmd += ' --include-package ' + p
+
+	print(cmd)
+	return cmd
 
 def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = "", finetune_source=""):
 	# Load config file if it isn't passed in
@@ -133,7 +141,7 @@ def train(param_path, serialization_dir, num_runs, overrides = "", include_packa
 		for run_number in range(int(num_runs)):
 			assert isfile(join(finetune_source, str(run_number), 'model.tar.gz'))
 
-	setup_environment(config, include_package, finetune_source, serialization_dir, sha)
+	setup_environment(config, finetune_source, serialization_dir, sha)
 
 	# Iterate through the runs, modifying the seeds per run
 	head_serialization_dir = serialization_dir
@@ -144,9 +152,10 @@ def train(param_path, serialization_dir, num_runs, overrides = "", include_packa
 		if finetune_source:
 			config['trainer']['pretrained_model'] = join(finetune_source, str(run_number), 'model.tar.gz')
 
-		train_model_from_file(parameter_filename=param_path, 
-							  serialization_dir=serialization_dir,
-							  overrides=dumps(config))
+		# Construct the `allennlp train` command and run it
+		overrides = "'" + dumps(config) + "'" # Wrap in quotes for bash
+		cmd = construct_train_command(param_path, serialization_dir, overrides, include_package)
+		os.system(cmd)
 
 		# Grab the seeds and write them to file, since allennlp doesn't save seeds in `serialization_dir`
 		with open(join(serialization_dir, 'seeds.json'), 'w') as f:
