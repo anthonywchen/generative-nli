@@ -62,10 +62,10 @@ class GNLIDatasetReader(DatasetReader):
 		src_length = len(src[0])
 
 		## Create decoder inputs and targets
-		# Targets of the decoder: [<s> A B C D E <\s>]
-		target = self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids(hypothesis_tokens))
-		# Inputs of the decoder:  [<\s> <s> A B C D E]
-		prev_output_tokens = [self._tokenizer.eos_token_id] + target[:-1]
+		# Targets of the decoder: [A B C D E <\s>]
+		target = self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids(hypothesis_tokens))[1:]
+		# Inputs of the decoder:  [<s> A B C D E]
+		prev_output_tokens = [self._tokenizer.bos_token_id] + target[:-1]
 		target_length = len(target)
 
 		####################
@@ -114,8 +114,8 @@ class GNLIDatasetReader(DatasetReader):
 			premise_tokens = premise_tokens[:max_premise_length]
 
 		if self.max_hypothesis_length:
-			# Account for [<s>] + hypothesis_tokens + [</s>]
-			max_hypothesis_length = self.max_hypothesis_length - 2
+			# Account for hypothesis_tokens + [</s>]
+			max_hypothesis_length = self.max_hypothesis_length - 1
 			hypothesis_tokens = hypothesis_tokens[:max_hypothesis_length]
 
 		return premise_tokens, hypothesis_tokens

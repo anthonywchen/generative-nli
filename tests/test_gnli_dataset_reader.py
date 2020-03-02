@@ -69,15 +69,15 @@ class Tests(AllenNlpTestCase):
 				assert len(src) == max_premise_length
 				assert len(target) == len(prev_output_tokens) == max_hypothesis_length
 				assert len(premise_tokens) == src_length - 3
-				assert len(hypothesis_tokens) == target_length - 2
+				assert len(hypothesis_tokens) == target_length - 1
 
 				# Test conversion of tokens to ids for encoder input and decoder input and target
 				cur_class_token = '<'+cur_class+'>'
 				assert src[1] == 50265 + i
 
 				assert tokenizer.convert_tokens_to_ids(['<s>'] + [cur_class_token] + premise_tokens + ['</s>']) == src[:src_length]
-				assert tokenizer.convert_tokens_to_ids(['</s>', '<s>'] + hypothesis_tokens) == prev_output_tokens[:target_length]
-				assert tokenizer.convert_tokens_to_ids(['<s>'] + hypothesis_tokens + ['</s>']) == target[:target_length]
+				assert tokenizer.convert_tokens_to_ids(['<s>'] + hypothesis_tokens) == prev_output_tokens[:target_length]
+				assert tokenizer.convert_tokens_to_ids(hypothesis_tokens + ['</s>']) == target[:target_length]
 				assert target[:target_length] == prev_output_tokens[1:target_length] + [tokenizer.eos_token_id]
 
 				# Check padding
@@ -104,13 +104,13 @@ class Tests(AllenNlpTestCase):
 
 				# Test encoder and decoder inputs are at max length
 				assert len(premise_tokens) + 3 == src_length == len(src)
-				assert len(hypothesis_tokens) + 2 == target_length == len(target) == len(prev_output_tokens)
+				assert len(hypothesis_tokens) + 1 == target_length == len(target) == len(prev_output_tokens)
 
 				# Test conversion of tokens to ids for encoder input and decoder input and target
 				cur_class_token = '<'+cur_class+'>'
 				assert src[1] == 50265 + i
 
 				assert tokenizer.convert_tokens_to_ids(['<s>'] + [cur_class_token] + premise_tokens + ['</s>']) == src
-				assert tokenizer.convert_tokens_to_ids(['</s>', '<s>'] + hypothesis_tokens) == prev_output_tokens
-				assert tokenizer.convert_tokens_to_ids(['<s>'] + hypothesis_tokens + ['</s>']) == target
+				assert tokenizer.convert_tokens_to_ids(['<s>'] + hypothesis_tokens) == prev_output_tokens
+				assert tokenizer.convert_tokens_to_ids(hypothesis_tokens + ['</s>']) == target
 				assert target[:target_length] == prev_output_tokens[1:target_length] + [tokenizer.eos_token_id]
