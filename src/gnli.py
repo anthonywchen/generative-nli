@@ -8,6 +8,7 @@ from typing import Dict
 from allennlp.common import Params
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
+from allennlp.modules.feedforward import FeedForward
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics.average import Average
 from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
@@ -62,6 +63,7 @@ class GNLI(Model):
 		
 	def __init__(self, 
 				 pretrained_model: str,
+				 linear_layer: FeedForward,
 				 discriminative_loss_weight: float = 0,
 				 vocab: Vocabulary = Vocabulary(),
 				 softmax_over_vocab: bool = False,
@@ -73,6 +75,7 @@ class GNLI(Model):
 
 		# Load in BART and extend the embeddings layer by three for the label embeddings.
 		self._bart = torch.hub.load('pytorch/fairseq', pretrained_model).model
+		self._linear_layer = linear_layer
 		self._extend_embeddings()
 
 		# Ignore padding indices when calculating generative loss.
@@ -214,7 +217,8 @@ class GNLI(Model):
 
 		# glu_input.size() = [batch_size*3, hypothesis_length, hidden_dim*2]
 		glu_input = torch.cat((decoder_features, label_embeds), dim=-1)
-		decoder_features = torch.nn.functional.glu(glu_input)
+		decoder_features = self._linear_layer(glu_input)
+		# decoder_features = torch.nn.functional.glu(glu_input)
 
 		## Compute the logits over the vocabulary
 		decoder_logits = self._bart.decoder.output_layer(decoder_features)
