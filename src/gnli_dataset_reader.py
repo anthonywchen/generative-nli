@@ -53,38 +53,31 @@ class GNLIDatasetReader(DatasetReader):
 		##### Create ids for encoder inputs, decoder inputs and decoder targets 
 		####################
 
-		## Create encoder inputs
-		src = []
-		src.append(self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids([self._tokenizer.entail_token]+premise_tokens)))
-		src.append(self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids([self._tokenizer.neutral_token]+premise_tokens)))
-		src.append(self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids([self._tokenizer.contradict_token]+premise_tokens)))
-		assert len(src[0]) == len(src[1]) == len(src[2])
-		src_length = len(src[0])
-
-		## Create decoder inputs and targets
-		# Targets of the decoder: [A B C D E <\s>]
+		# Input of the encoder: [<s> A B C D E </s>]
+		src = self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids(premise_tokens))
+		
+		# Targets of the decoder: [V W X Y Z <\s>]
 		target = self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids(hypothesis_tokens))[1:]
-		# Inputs of the decoder:  [<s> A B C D E]
+
+		# Inputs of the decoder:  [<s> V W X Y Z]
 		prev_output_tokens = [self._tokenizer.bos_token_id] + target[:-1]
-		target_length = len(target)
 
 		####################
 		##### Padding of the input 
 		####################
-		# Pad the premise ids (the source)
+		src_length = len(src)
+		target_length = len(target)
+
+		# Pad the premise (the encoder inputs)
 		if self.max_premise_length:
 			encoder_padding = [self._tokenizer.pad_token_id]*(self.max_premise_length - src_length)
-			src = [s + encoder_padding for s in src] 
+			src += encoder_padding
 
-		# Pad the hypothesis ids (the target)
+		# Pad the hypothesis (the decoder inputs and targets)
 		if self.max_hypothesis_length:
 			decoder_padding = [self._tokenizer.pad_token_id]*(self.max_hypothesis_length - target_length)
-			target += decoder_padding
+			target 	+= decoder_padding
 			prev_output_tokens += decoder_padding
-
-		# Replicate `prev_output_tokens` and `src_lengths` three times
-		prev_output_tokens = [prev_output_tokens]*3
-		src_length = [src_length]*3
 
 		####################
 		##### Create instance
@@ -109,12 +102,12 @@ class GNLIDatasetReader(DatasetReader):
 
 	def _truncate_input(self, premise_tokens, hypothesis_tokens):
 		if self.max_premise_length:
-			# Account for [<s>] + label_token + premise_tokens + [</s>]
-			max_premise_length = self.max_premise_length - 3
+			# Account for `[<s>] + premise_tokens + [</s>]`
+			max_premise_length = self.max_premise_length - 2
 			premise_tokens = premise_tokens[:max_premise_length]
 
 		if self.max_hypothesis_length:
-			# Account for hypothesis_tokens + [</s>]
+			# Account for `hypothesis_tokens + [</s>]`
 			max_hypothesis_length = self.max_hypothesis_length - 1
 			hypothesis_tokens = hypothesis_tokens[:max_hypothesis_length]
 

@@ -28,7 +28,7 @@
 			"hidden_dims": 1024,
 			"activations": ["linear"],
 		},
-		"discriminative_loss_weight": [0.5],
+		"discriminative_loss_weight": [0, 0.25, 0.5],
 	},
 	"iterator": {
 		"type": "basic",
@@ -37,7 +37,7 @@
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 1,
-		"num_epochs": [20, 40, 80],
+		"num_epochs": [10, 20, 40, 80],
 		"patience": 15,
 		"half_precision": true,
 		"accumulation_steps": 16,
