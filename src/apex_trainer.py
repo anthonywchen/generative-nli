@@ -804,7 +804,7 @@ class ApexTrainer(TrainerBase):
 		pretrained_model = params.pop("pretrained_model", None)
 
 		if pretrained_model:
-			logger.info('Loading pretrained model from', pretrained_model)
+			logger.info('Loading pretrained model from %s', pretrained_model)
 			model = load_archive(pretrained_model).model
 			model._discriminative_loss_weight = 1 # TODO: fix this hack
 
