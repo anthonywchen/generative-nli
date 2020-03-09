@@ -30,7 +30,8 @@ class Tests(AllenNlpTestCase):
 		torch.manual_seed(0)
 
 	# def test_embeddings(self):
-	# 	gnli = GNLI('bart.large')
+	# 	config = Params.from_file('configs/gnli_large_config.json')
+	# 	gnli = Model.from_params(params=config['model'])
 	# 	bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
 
 	# 	# Check that GNLI encoder and decoder are tied

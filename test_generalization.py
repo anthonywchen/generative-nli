@@ -16,7 +16,7 @@ from src.bert_dataset_reader import BertNLIDatasetReader
 from src.gnli_dataset_reader import GNLIDatasetReader
 
 # Batch size to do evaluation
-BATCH_SIZE = 45
+BATCH_SIZE = 1
 
 def load_predictor(serialization_dir, device):
 	## Load the model
@@ -31,11 +31,12 @@ def load_predictor(serialization_dir, device):
 
 	# Turn off truncation of the inputs
 	if model_name == 'gnli':
-		pass
-		# dataset_reader_params.params['max_premise_length'] = None
-		# dataset_reader_params.params['max_hypothesis_length'] = None
+		dataset_reader_params.params['max_premise_length'] = None
+		dataset_reader_params.params['max_hypothesis_length'] = None
+		BATCH_SIZE = 1
 	elif model_name == 'bertnli':
 		dataset_reader_params.params['max_seq_length'] = None
+		BATCH_SIZE = 45
 	else:
 		raise ValueError()
 
