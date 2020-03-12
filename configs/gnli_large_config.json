@@ -30,7 +30,7 @@
 		},
 		"discriminative_loss_weight": [0],
 		"softmax_over_vocab": true,
-		"replace_bos_token": true,
+		"replace_bos_token": false,
 	},
 	"iterator": {
 		"type": "basic",
@@ -38,7 +38,7 @@
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 3,
+		"cuda_device": 0,
 		"num_epochs": [3],
 		"patience": 15,
 		"half_precision": true,

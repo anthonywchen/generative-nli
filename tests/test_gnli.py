@@ -62,25 +62,25 @@ class Tests(AllenNlpTestCase):
 		del output_dict['metadata']
 		assert isclose(output_dict['loss'].item(), 8.3528, abs_tol=1e-3)
 
-	def test_one_batch_replace_eos(self):
-		self.set_seed()
-		config = Params.from_file('tests/sample_gnli_config.json')
-		config['model']['replace_bos_token'] = True
-		config['model']['discriminative_loss_weight'] = 1
-		gnli = Model.from_params(params=config['model'])
+	# def test_one_batch_replace_eos(self):
+	# 	self.set_seed()
+	# 	config = Params.from_file('tests/sample_gnli_config.json')
+	# 	config['model']['replace_bos_token'] = True
+	# 	config['model']['discriminative_loss_weight'] = 1
+	# 	gnli = Model.from_params(params=config['model'])
 
-		reader_params = config.pop('dataset_reader')
-		reader = DatasetReader.by_name(reader_params.pop('type')).from_params(reader_params)
+	# 	reader_params = config.pop('dataset_reader')
+	# 	reader = DatasetReader.by_name(reader_params.pop('type')).from_params(reader_params)
 
-		iterator_params = config.pop('iterator')
-		iterator_params.params["batch_size"] = 3
-		iterator = DataIterator.by_name(iterator_params.pop('type')).from_params(iterator_params)
+	# 	iterator_params = config.pop('iterator')
+	# 	iterator_params.params["batch_size"] = 3
+	# 	iterator = DataIterator.by_name(iterator_params.pop('type')).from_params(iterator_params)
 
-		instances = reader.read('data/mnli/dev.jsonl')
+	# 	instances = reader.read('data/mnli/dev.jsonl')
 
-		for batch in iterator(instances):
-			output_dict = gnli(**batch)
-			output_dict['loss'].backward()
-			break
-		del output_dict['metadata']
-		assert isclose(output_dict['loss'].item(), 7.1976, abs_tol=1e-3)
+	# 	for batch in iterator(instances):
+	# 		output_dict = gnli(**batch)
+	# 		output_dict['loss'].backward()
+	# 		break
+	# 	del output_dict['metadata']
+	# 	assert isclose(output_dict['loss'].item(), 7.1976, abs_tol=1e-3)

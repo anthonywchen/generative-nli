@@ -227,7 +227,8 @@ class GNLI(Model):
         linear_layer_input = torch.cat((decoder_features, label_embeds), dim=-1)
 
         # final_features.size() = [batch_size*3, hypothesis_length, hidden_dim]
-        final_features = self._linear_layer(linear_layer_input)
+        # final_features = self._linear_layer(linear_layer_input)
+        final_features = torch.nn.functional.glu(glu_input)
 
         ## Compute the logits over the vocabulary
         decoder_logits = self._bart.decoder.output_layer(final_features)
