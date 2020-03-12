@@ -7,14 +7,7 @@
 		"pretrained_model": "roberta-large",
 		"max_premise_length": 128,
 		"max_hypothesis_length": 80,
-		"percent_data": 0.0005,
-	},
-	"validation_dataset_reader": {
-		"type": "gnli",
-		"pretrained_model": "roberta-large",
-		"max_premise_length": 128,
-		"max_hypothesis_length": 80,
-		"percent_data": 0.001,
+		"percent_data": 1,
 	},
 	"model": {
 		"type": "gnli",
@@ -25,7 +18,7 @@
 			"hidden_dims": 1024,
 			"activations": ["linear"],
 		},
-		"discriminative_loss_weight": 1,
+		"discriminative_loss_weight": 0,
 		"softmax_over_vocab": true,
 	},
 	"iterator": {

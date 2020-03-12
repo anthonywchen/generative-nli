@@ -2,6 +2,7 @@ import logging
 import math
 import numpy
 from overrides import overrides
+from pprint import pprint
 import torch
 from typing import Dict
 
@@ -67,6 +68,7 @@ class GNLI(Model):
                  discriminative_loss_weight: float = 0,
                  vocab: Vocabulary = Vocabulary(),
                  softmax_over_vocab: bool = False,
+                 replace_bos_token: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(GNLI, self).__init__(vocab)
         assert pretrained_model in ['bart.large']
@@ -81,6 +83,7 @@ class GNLI(Model):
         self._discriminative_loss_fn     = torch.nn.NLLLoss()
         self._discriminative_loss_weight = discriminative_loss_weight
 
+        self._replace_bos_token = replace_bos_token
         self._softmax_over_vocab = softmax_over_vocab
         if self._softmax_over_vocab:
             self.effective_vocab_size = self.vocab_size
@@ -189,31 +192,45 @@ class GNLI(Model):
         batch_size, premise_length = src.size()
         hypothesis_length = prev_output_tokens.size(-1)
 
-        ## BART returns the final hidden states of the decoder over `prev_output_tokens`.       
-        # decoder_features.size() = [batch_size, hypothesis_length, hidden_dim]
-        decoder_features, _ = self._bart(src_tokens=src,
-                                         src_lengths=src_lengths,
-                                         prev_output_tokens=prev_output_tokens,
-                                         features_only=True)
-
-        # decoder_features.size() = [batch_size, label_size, hypothesis_size, hidden_dim]
-        decoder_features = decoder_features.unsqueeze(1).repeat(1, self.label_size, 1, 1)
-        # decoder_features.size() = [batch_size*label_size, hypothesis_size, hidden_dim]
-        decoder_features = decoder_features.resize(batch_size*self.label_size, hypothesis_length, decoder_features.size(-1))
-
-        # Create label embeddings tensor
+        ## Create labels tensor
         labels = torch.Tensor(range(self.vocab_size, self.vocab_size+self.label_size)).type_as(src)
         # labels.size() = [batch_size*3, hypothesis_length]
         labels = labels.unsqueeze(-1).repeat(batch_size, hypothesis_length)
-        # label_embeds.size() = [batch_size*3, hypothesis_length, hidden_dim]
+
+        # Replace <s> token in decoder with label embeddings
+        if self._replace_bos_token:
+            src                 = src.unsqueeze(1).repeat(1, self.label_size, 1).resize(batch_size*self.label_size, premise_length)
+            src_lengths         = src_lengths.unsqueeze(1).repeat(1, self.label_size).resize(batch_size*self.label_size)
+            prev_output_tokens  = prev_output_tokens.unsqueeze(1).repeat(1, self.label_size, 1).resize(batch_size*self.label_size, hypothesis_length)
+
+            # Replace <s> token in `prev_output_tokens` with label ids
+            prev_output_tokens[:, 0] = labels[:, 0]
+
+            decoder_features, _ = self._bart(src_tokens=src,
+                                             src_lengths=src_lengths,
+                                             prev_output_tokens=prev_output_tokens,
+                                             features_only=True)
+        else:
+            decoder_features, _ = self._bart(src_tokens=src,
+                                             src_lengths=src_lengths,
+                                             prev_output_tokens=prev_output_tokens,
+                                             features_only=True)
+
+            decoder_features = decoder_features.unsqueeze(1).repeat(1, self.label_size, 1, 1)
+            decoder_features = decoder_features.resize(batch_size*self.label_size, hypothesis_length, decoder_features.size(-1))
+
+        ## Embed label embeddings linearly mix with decoder features
+        # decoder_features.size() = label_embeds.size() = [batch_size*3, hypothesis_length, hidden_dim]
         label_embeds = self._bart.encoder.embed_tokens(labels)
 
         # linear_layer_input.size() = [batch_size*3, hypothesis_length, hidden_dim*2]
         linear_layer_input = torch.cat((decoder_features, label_embeds), dim=-1)
-        decoder_features = self._linear_layer(linear_layer_input)
+
+        # final_features.size() = [batch_size*3, hypothesis_length, hidden_dim]
+        final_features = self._linear_layer(linear_layer_input)
 
         ## Compute the logits over the vocabulary
-        decoder_logits = self._bart.decoder.output_layer(decoder_features)
+        decoder_logits = self._bart.decoder.output_layer(final_features)
 
         ## Get outputs over the vocab, not the label
         if self._softmax_over_vocab:

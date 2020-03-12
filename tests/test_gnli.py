@@ -9,9 +9,8 @@ import json
 import logging
 from math import isclose
 import os
-from os.path import isdir, join
+from pprint import pprint
 import random
-import shutil
 import torch
 
 from src.apex_trainer import ApexTrainer
@@ -29,37 +28,59 @@ class Tests(AllenNlpTestCase):
 		random.seed(0)
 		torch.manual_seed(0)
 
-	# def test_embeddings(self):
-	# 	config = Params.from_file('configs/gnli_large_config.json')
-	# 	gnli = Model.from_params(params=config['model'])
-	# 	bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
-
-	# 	# Check that GNLI encoder and decoder are tied
-	# 	assert gnli._bart.encoder.embed_tokens == gnli._bart.decoder.embed_tokens
-
-	# 	# Check that GNLI and original BART token embeddings values match
-	# 	assert torch.all(list(gnli._bart.encoder.embed_tokens.parameters())[0][:-3] == list(bart.encoder.embed_tokens.parameters())[0]).item()
-
-	def test_training(self):
-		""" 
-		Tests that we can run a training run, and 
-		record the output scores so that we can always check back 
-		"""
-		print('\n test_training \n')
-		self.set_seed()
-
+	def test_embeddings(self):
 		config = Params.from_file('tests/sample_gnli_config.json')
-		output_directory = 'tests/gnli'
-		if isdir(output_directory): 
-			shutil.rmtree(output_directory)
+		gnli = Model.from_params(params=config['model'])
+		bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
 
-		trainer = ApexTrainer.from_params(params=config, serialization_dir=output_directory)
-		trainer.train()
+		# Check that GNLI encoder and decoder are tied
+		assert gnli._bart.encoder.embed_tokens == gnli._bart.decoder.embed_tokens
 
-		# Check that final metrics are correct. This can be useful since different versions 
-		# sometimes yield different results and this can potentially reveal this discrepency. 
-		final_metrics = json.load(open(join(output_directory, 'metrics_epoch_19.json')))
-		# assert isclose(final_metrics['training_accuracy'], 0.8763636363636363, abs_tol=ABS_TOL)
-		# assert isclose(final_metrics['best_validation_accuracy'], 0.9, abs_tol=ABS_TOL)
-		# assert isclose(final_metrics['best_validation_loss'], 1.19368314743042, abs_tol=ABS_TOL)
-		# assert isclose(final_metrics['best_epoch'], 17)
+		# Check that GNLI and original BART token embeddings values match
+		assert torch.all(list(gnli._bart.encoder.embed_tokens.parameters())[0][:-3] == list(bart.encoder.embed_tokens.parameters())[0]).item()
+
+	def test_one_batch(self):
+		self.set_seed()
+		config = Params.from_file('tests/sample_gnli_config.json')
+		config['model']['replace_bos_token'] = False
+		config['model']['discriminative_loss_weight'] = 1
+		gnli = Model.from_params(params=config['model'])
+
+		reader_params = config.pop('dataset_reader')
+		reader = DatasetReader.by_name(reader_params.pop('type')).from_params(reader_params)
+
+		iterator_params = config.pop('iterator')
+		iterator_params.params["batch_size"] = 3
+		iterator = DataIterator.by_name(iterator_params.pop('type')).from_params(iterator_params)
+
+		instances = reader.read('data/mnli/dev.jsonl')
+
+		for batch in iterator(instances):
+			output_dict = gnli(**batch)
+			output_dict['loss'].backward()
+			break
+		del output_dict['metadata']
+		assert isclose(output_dict['loss'].item(), 8.3528, abs_tol=1e-3)
+
+	def test_one_batch_replace_eos(self):
+		self.set_seed()
+		config = Params.from_file('tests/sample_gnli_config.json')
+		config['model']['replace_bos_token'] = True
+		config['model']['discriminative_loss_weight'] = 1
+		gnli = Model.from_params(params=config['model'])
+
+		reader_params = config.pop('dataset_reader')
+		reader = DatasetReader.by_name(reader_params.pop('type')).from_params(reader_params)
+
+		iterator_params = config.pop('iterator')
+		iterator_params.params["batch_size"] = 3
+		iterator = DataIterator.by_name(iterator_params.pop('type')).from_params(iterator_params)
+
+		instances = reader.read('data/mnli/dev.jsonl')
+
+		for batch in iterator(instances):
+			output_dict = gnli(**batch)
+			output_dict['loss'].backward()
+			break
+		del output_dict['metadata']
+		assert isclose(output_dict['loss'].item(), 7.1976, abs_tol=1e-3)
