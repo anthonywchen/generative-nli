@@ -118,10 +118,6 @@ def main():
 			serialization_dir = 'finetune_' + serialization_dir
 		serialization_dir = join(args.serialization_dir, serialization_dir)
 
-		if isdir(serialization_dir):
-			print(serialization_dir + ' already exists...')
-			continue
-
 		train(param_path=args.param_path,
 			  serialization_dir=serialization_dir,
 			  num_runs=args.num_runs,
