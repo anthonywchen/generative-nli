@@ -135,12 +135,6 @@ def construct_train_command(param_path, serialization_dir, overrides, include_pa
 def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = "", finetune_source=""):
 	# Load config file if it isn't passed in
 	config = parse_overrides(overrides) if overrides else loads(evaluate_file(param_path))
-	
-	# Check that we have `num_runs` pretrained models under `finetune_source`
-	if finetune_source:
-		for run_number in range(int(num_runs)):
-			assert isfile(join(finetune_source, str(run_number), 'model.tar.gz'))
-
 	setup_environment(config, finetune_source, serialization_dir, sha)
 
 	# Iterate through the runs, modifying the seeds per run
