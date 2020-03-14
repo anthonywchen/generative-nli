@@ -28,7 +28,7 @@
 			"activations": ["linear"],
 		},
 		"discriminative_loss_weight": [0],
-		"softmax_over_vocab": true,
+		"softmax_over_vocab": [false],
 		"have_encoder_label": true,
 	},
 	"iterator": {
@@ -37,7 +37,7 @@
 	},
 	"trainer": {
 		"type": "apextrainer",
-		"cuda_device": 1,
+		"cuda_device": 3,
 		"num_epochs": [3],
 		"patience": 15,
 		"half_precision": true,
@@ -48,7 +48,7 @@
 		"warmup_proportion": [0.06],
 		"optimizer": {
 			"type": "adamw",
-			"lr": [1e-5],
+			"lr": [1e-5, 3e-5, 5e-5],
 			"betas": [0.9, 0.98],
 			"weight_decay": 0.01,
 			"parameter_groups": [
