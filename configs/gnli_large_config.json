@@ -21,16 +21,15 @@
 	},
 	"model": {
 		"type": "gnli",
-		"pretrained_model": "bart.large",
 		"linear_layer": {
 			"input_dim": 2048,
 			"num_layers": 1,
 			"hidden_dims": 1024,
 			"activations": ["linear"],
 		},
-		"discriminative_loss_weight": 0,
+		"discriminative_loss_weight": [0],
 		"softmax_over_vocab": true,
-		"replace_bos_token": false,
+		"have_encoder_label": true,
 	},
 	"iterator": {
 		"type": "basic",
@@ -39,11 +38,11 @@
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 1,
-		"num_epochs": [4],
+		"num_epochs": [3],
 		"patience": 15,
 		"half_precision": true,
 		"opt_level": "O2",
-		"accumulation_steps": 32,
+		"accumulation_steps": 16,
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
 		"warmup_proportion": [0.06],

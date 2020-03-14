@@ -11,19 +11,18 @@
 	},
 	"model": {
 		"type": "gnli",
-		"pretrained_model": "bart.large",
 		"linear_layer": {
 			"input_dim": 2048,
 			"num_layers": 1,
 			"hidden_dims": 1024,
 			"activations": ["linear"],
 		},
-		"discriminative_loss_weight": 0,
+		"discriminative_loss_weight": 1,
 		"softmax_over_vocab": true,
 	},
 	"iterator": {
 		"type": "basic",
-		"batch_size" : 8,
+		"batch_size" : 3,
 	},
 	"trainer": {
 		"cuda_device": 0,
