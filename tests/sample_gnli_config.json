@@ -11,14 +11,7 @@
 	},
 	"model": {
 		"type": "gnli",
-		"linear_layer": {
-			"input_dim": 2048,
-			"num_layers": 1,
-			"hidden_dims": 1024,
-			"activations": ["linear"],
-		},
-		"discriminative_loss_weight": 1,
-		"softmax_over_vocab": true,
+		"disc_loss_weight": 1,
 	},
 	"iterator": {
 		"type": "basic",

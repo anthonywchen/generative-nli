@@ -60,7 +60,7 @@ class ApexTrainer(TrainerBase):
 				 validation_iterator: DataIterator = None,
 				 shuffle: bool = True,
 				 accumulation_steps: int = 0,
-				 opt_level: str = "O1",
+				 opt_level: str = "O2",
 				 num_epochs: int = 20,
 				 serialization_dir: Optional[str] = None,
 				 num_serialized_models_to_keep: int = 20,
@@ -806,7 +806,7 @@ class ApexTrainer(TrainerBase):
 		if pretrained_model:
 			logger.info('Loading pretrained model from %s', pretrained_model)
 			model = load_archive(pretrained_model).model
-			model._discriminative_loss_weight = 1 # TODO: fix this hack
+			model.disc_loss_weight = 1 # TODO: fix this hack
 
 		if isinstance(cuda_device, list):
 			model_device = cuda_device[0]

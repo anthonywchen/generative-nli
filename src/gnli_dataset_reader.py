@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 from overrides import overrides
+from pytorch_transformers import RobertaTokenizer
 import random
 from typing import Callable, Dict, Iterable, Iterator, List
 
@@ -10,7 +11,6 @@ from allennlp.data.fields import ArrayField
 from allennlp.data.fields.metadata_field import MetadataField
 from allennlp.data.instance import Instance
 
-from src.gnli_tokenizer import GNLITokenizer
 from src import utils 
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -29,7 +29,7 @@ class GNLIDatasetReader(DatasetReader):
 		self.max_premise_length = max_premise_length
 		self.max_hypothesis_length = max_hypothesis_length
 
-		self._tokenizer = GNLITokenizer.from_pretrained(pretrained_model)
+		self._tokenizer = RobertaTokenizer.from_pretrained(pretrained_model)
 		self._label_dict = {'entailment': 0, 'neutral': 1, 'contradiction': 2}
 
 	@overrides
