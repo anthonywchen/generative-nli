@@ -71,7 +71,6 @@ class GNLI(Model):
 		linear_layer: FeedForward,
 		discriminative_loss_weight: float = 0,
 		softmax_over_vocab: bool = False,
-		have_encoder_label: bool = False,
 		vocab: Vocabulary = Vocabulary(),
 		initializer: InitializerApplicator = InitializerApplicator()) -> None:
 
@@ -83,7 +82,6 @@ class GNLI(Model):
 		self._extend_embeddings()
 
 		self._linear_layer = linear_layer
-		self._have_encoder_label = have_encoder_label
 		self._softmax_over_vocab = softmax_over_vocab
 
 		self._generative_loss = torch.nn.CrossEntropyLoss(ignore_index=self._bart.encoder.padding_idx)
@@ -177,26 +175,12 @@ class GNLI(Model):
 		# labels.size() = [batch_size*3, hypothesis_length]
 		labels = labels.unsqueeze(-1).repeat(batch_size, hypothesis_length)
 
-		# Make the second token of the encoder input the label embeddings
-		if self._have_encoder_label:
-			src 				= src.repeat_interleave(self.label_size, dim=0)
-			src_lengths 		= src_lengths.repeat_interleave(self.label_size, dim=0)
-			prev_output_tokens  = prev_output_tokens.repeat_interleave(self.label_size, dim=0)
 
-			# Add label ids to `src` and add 1 to the length of the input `src`
-			src = torch.cat((src[:, :1], labels[:, :1], src[:, 1:]), dim=-1)
-			src_lengths += 1
-
-			decoder_features, _ = self._bart(src_tokens=src,
-											 src_lengths=src_lengths,
-											 prev_output_tokens=prev_output_tokens,
-											 features_only=True)
-		else:
-			decoder_features, _ = self._bart(src_tokens=src,
-											 src_lengths=src_lengths,
-											 prev_output_tokens=prev_output_tokens,
-											 features_only=True)
-			decoder_features = decoder_features.repeat_interleave(self.label_size, dim=0)
+		decoder_features, _ = self._bart(src_tokens=src,
+										 src_lengths=src_lengths,
+										 prev_output_tokens=prev_output_tokens,
+										 features_only=True)
+		decoder_features = decoder_features.repeat_interleave(self.label_size, dim=0)
 
 		## Embed label embeddings linearly mix with decoder features
 		label_embeds = self._bart.encoder.embed_tokens(labels)

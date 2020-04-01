@@ -24,7 +24,7 @@ class GNLIDatasetReader(DatasetReader):
 				 percent_data: float = 1,
 				 lazy: bool = False) -> None:
 		super().__init__(lazy)
-		assert percent_data > 0 and percent_data <= 1
+		assert 0 < percent_data <= 1
 		self.percent_data = percent_data
 		self.max_premise_length = max_premise_length
 		self.max_hypothesis_length = max_hypothesis_length
@@ -49,10 +49,6 @@ class GNLIDatasetReader(DatasetReader):
 		hypothesis_tokens = self._tokenizer.tokenize(hypothesis.strip())
 		premise_tokens, hypothesis_tokens = self._truncate_input(premise_tokens, hypothesis_tokens)
 
-		####################
-		##### Create ids for encoder inputs, decoder inputs and decoder targets 
-		####################
-
 		# Input of the encoder: [<s> A B C D E </s>]
 		src = self._tokenizer.add_special_tokens_single_sentence(self._tokenizer.convert_tokens_to_ids(premise_tokens))
 		
@@ -62,37 +58,18 @@ class GNLIDatasetReader(DatasetReader):
 		# Inputs of the decoder:  [<s> V W X Y Z]
 		prev_output_tokens = [self._tokenizer.bos_token_id] + target[:-1]
 
-		####################
-		##### Padding of the input 
-		####################
-		src_length = len(src)
-		target_length = len(target)
-
-		# Pad the premise (the encoder inputs)
-		if self.max_premise_length:
-			encoder_padding = [self._tokenizer.pad_token_id]*(self.max_premise_length - src_length)
-			src += encoder_padding
-
-		# Pad the hypothesis (the decoder inputs and targets)
-		if self.max_hypothesis_length:
-			decoder_padding = [self._tokenizer.pad_token_id]*(self.max_hypothesis_length - target_length)
-			target 	+= decoder_padding
-			prev_output_tokens += decoder_padding
-
-		####################
-		##### Create instance
-		####################
 		metadata = {'premise': premise,
 					'hypothesis': hypothesis,
 					'premise_tokens': premise_tokens,
 					'hypothesis_tokens': hypothesis_tokens,
-					'label': label, 'tag': tag}
+					'label': label, 
+					'tag': tag}
 
-		fields = {'src':	 			ArrayField(np.array(src), dtype=np.int64),
-				  'src_lengths': 		ArrayField(np.array(src_length), dtype=np.int64),
-				  'prev_output_tokens': ArrayField(np.array(prev_output_tokens), dtype=np.int64),
-				  'target': 			ArrayField(np.array(target), dtype=np.int64),
-				  'target_lengths':		ArrayField(np.array(target_length), dtype=np.int64),
+		fields = {'src':	 			ArrayField(np.array(src), dtype=np.int64, padding_value=1),
+				  'prev_output_tokens': ArrayField(np.array(prev_output_tokens), dtype=np.int64, padding_value=1),
+				  'target': 			ArrayField(np.array(target), dtype=np.int64, padding_value=1),
+				  'src_lengths': 		ArrayField(np.array(len(src)), dtype=np.int64),
+				  'target_lengths':		ArrayField(np.array(len(target)), dtype=np.int64),
 				  'metadata': 			MetadataField(metadata)}
 
 		if label is not None:
