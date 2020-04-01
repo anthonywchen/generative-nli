@@ -33,7 +33,7 @@
 	"iterator": {
 		"type": "bucket",
 		"batch_size" : 32,
-		"sorting_keys": ["target", "src"]
+		"sorting_keys": [["target", "dimension_0"], ["src", "dimension_0"]],
 	},
 	"trainer": {
 		"type": "apextrainer",
