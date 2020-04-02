@@ -53,7 +53,7 @@ class GNLI(Model):
 
 		super(GNLI, self).__init__(vocab)
 		self.bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
-		self.projection_layer = torch.nn.Linear(self.hidden_dim, self.hidden_dim*self.label_size)
+		self.projection_layers = torch.nn.ModuleList([torch.nn.Linear(self.hidden_dim, self.hidden_dim) for _ in range(self.label_size)])
 
 		assert 0 <= disc_loss_weight <= 1
 		self.disc_loss_weight = disc_loss_weight
@@ -142,25 +142,20 @@ class GNLI(Model):
 		return output_dict
 
 	def bart_forward(self, src, src_lengths, prev_output_tokens):
-		batch_size, hypothesis_length = prev_output_tokens.size()
-
 		# decoder_features.size() = [batch_size, hypothesis_length, hidden_dim]
 		decoder_features, _ = self.bart(src_tokens=src,
 										src_lengths=src_lengths,
 										prev_output_tokens=prev_output_tokens,
 										features_only=True)
 
-		# Pass features through a projection layer (one for each label)
-		decoder_features = self.projection_layer(decoder_features)
-		decoder_featuers = decoder_features.resize(batch_size, hypothesis_length, self.label_size, self.hidden_dim)
-		decoder_features = decoder_featuers.permute(0, 2, 1, 3).resize(batch_size*self.label_size, hypothesis_length, self.hidden_dim)
+		# Pass features through a projection layer per label and combine along the 1st dimension
+		projected_features = [p(decoder_features).unsqueeze(1) for p in self.projection_layers]
+		# projected_features.size() = [batch_size, label_size, hypothesis_length, hidden_dim]
+		projected_features = torch.cat(projected_features, dim=1)
 
 		# Compute logits over the vocabulary
-		decoder_logits = self.bart.decoder.output_layer(decoder_features)
-
-		# Unsqueeze the first dimension and convert to float (in case of half-prec training)
-		decoder_logits = decoder_logits.resize(batch_size, self.label_size, hypothesis_length, self.vocab_size).float()
-
+		decoder_logits = self.bart.decoder.output_layer(projected_features).float()
+		
 		return decoder_logits
 
 	def calculate_class_probabilities(self, hypothesis_probabilities, target_lengths):
