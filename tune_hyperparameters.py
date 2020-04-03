@@ -129,7 +129,7 @@ def main():
 			  include_package=['src'],
 			  sha=str(sha),
 			  finetune_source=args.finetune_source,
-			  disc_loss_weight=disc_loss_weight)
+			  disc_loss_weight=args.disc_loss_weight)
 
 if __name__ == '__main__':
 	main()
