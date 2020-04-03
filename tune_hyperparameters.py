@@ -119,7 +119,7 @@ def main():
 
 		serialization_dir = '_'.join([str(v) + '_' + k.split('.')[-1] for k, v in params.items()])
 		if args.finetune_source:
-			serialization_dir = 'finetune_' + serialization_dir + '_' + args.disc_loss_weight + '_disc_loss_weight'
+			serialization_dir = 'finetune_' + serialization_dir + '_' + str(args.disc_loss_weight) + '_disc_loss_weight'
 		serialization_dir = join(args.serialization_dir, serialization_dir)
 
 		train(param_path=args.param_path,

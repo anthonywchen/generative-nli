@@ -33,11 +33,11 @@
 		"type": "apextrainer",
 		"cuda_device": 0,
 		"num_epochs": [3],
+		"grad_clipping": [1],
 		"half_precision": true,
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
 		"warmup_proportion": 0.06,
-		"grad_clipping": [1],
 		"optimizer": {
 			"type": "adamw",
 			"lr": [1e-5],
