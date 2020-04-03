@@ -153,8 +153,8 @@ class GNLI(Model):
 							 features_only=True)[0].unsqueeze(1)
 
 		# Pass features through a projection layer per label and combine along the 1st dimension
-		features = self.dropout(features)
-		features = torch.tanh(features)
+		# features = self.dropout(features)
+		# features = torch.tanh(features)
 		features = torch.cat([p(features) for p in self.projections], dim=1)
 		features = self.dropout(features)
 
