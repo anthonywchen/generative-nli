@@ -12,7 +12,7 @@ from train import train
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
-TUNABLE_PARAMETERS = ['batch_size', 'disc_loss_weight', 'lr', 'num_epochs', 'weight_decay', 'warmup_proportion']
+TUNABLE_PARAMETERS = ['batch_size', 'disc_loss_weight', 'dropout', 'grad_clipping', 'lr', 'num_epochs', 'weight_decay', 'warmup_proportion']
 
 class ConfigIterator:
 	def __init__(self, config):

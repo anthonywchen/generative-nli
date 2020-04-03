@@ -22,6 +22,7 @@
 	"model": {
 		"type": "gnli",
 		"disc_loss_weight": [0],
+		"dropout": 0,
 	},
 	"iterator": {
 		"type": "bucket",
@@ -36,10 +37,12 @@
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
 		"warmup_proportion": 0.06,
+		// "grad_clipping": 1.0,
 		"optimizer": {
 			"type": "adamw",
-			"lr": [1e-5],
+			"lr": [3e-5],
 			"betas": [0.9, 0.98],
+			// "betas": [0.9, 0.999],
 			"weight_decay": 0.01,
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],

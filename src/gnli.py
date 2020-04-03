@@ -3,6 +3,7 @@ import math
 import numpy
 from overrides import overrides
 import torch
+from torch import nn
 from typing import Dict
 
 from allennlp.data.vocabulary import Vocabulary
@@ -48,17 +49,19 @@ class GNLI(Model):
 
 	def __init__(self, 
 		disc_loss_weight: float = 0,
+		dropout: float = 0,
 		vocab: Vocabulary = Vocabulary(),
 		initializer: InitializerApplicator = InitializerApplicator()) -> None:
 
 		super(GNLI, self).__init__(vocab)
-		self.bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
-		self.projection_layers = torch.nn.ModuleList([torch.nn.Linear(self.hidden_dim, self.hidden_dim) for _ in range(self.label_size)])
+		self.bart 				= torch.hub.load('pytorch/fairseq', 'bart.large').model
+		self.projection_layers 	= nn.ModuleList([nn.Linear(self.hidden_dim, self.hidden_dim) for _ in range(self.label_size)])
+		self.dropout 			= nn.Dropout(p=dropout)
 
 		assert 0 <= disc_loss_weight <= 1
-		self.disc_loss_weight = disc_loss_weight
-		self.disc_loss_fn = torch.nn.NLLLoss()
-		self.gen_loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self.bart.encoder.padding_idx)
+		self.disc_loss_weight 	= disc_loss_weight
+		self.disc_loss_fn 		= nn.NLLLoss()
+		self.gen_loss_fn 		= nn.CrossEntropyLoss(ignore_index=self.bart.encoder.padding_idx)
 		
 		self.metrics = {'disc_loss': Average(), 
 						'gen_loss': Average(),
@@ -83,7 +86,7 @@ class GNLI(Model):
 		## Calculate the logits and probability over the vocabulary at each decoder time
 		# decoder_logits.size() = [batch_size, 3, hypothesis_length, vocab_size]
 		decoder_logits = self.bart_forward(src, src_lengths, prev_output_tokens)
-		decoder_probabilties = 1e-15 + torch.nn.functional.softmax(decoder_logits, dim=-1)
+		decoder_probabilties = 1e-15 + nn.functional.softmax(decoder_logits, dim=-1)
 
 		## Calculate the probability of seeing the target tokens at each decoder time
 		# target_expanded.size() = [batch_size, 3, hypothesis_length, 1]
@@ -142,21 +145,23 @@ class GNLI(Model):
 		return output_dict
 
 	def bart_forward(self, src, src_lengths, prev_output_tokens):
-		# decoder_features.size() = [batch_size, hypothesis_length, hidden_dim]
-		decoder_features, _ = self.bart(src_tokens=src,
-										src_lengths=src_lengths,
-										prev_output_tokens=prev_output_tokens,
-										features_only=True)
+		# Get the features over the decoder
+		# features.size() = [batch_size, hypothesis_length, hidden_dim]
+		features, _ = self.bart(src_tokens=src,
+								src_lengths=src_lengths,
+								prev_output_tokens=prev_output_tokens,
+								features_only=True)
 
 		# Pass features through a projection layer per label and combine along the 1st dimension
-		projected_features = [p(decoder_features).unsqueeze(1) for p in self.projection_layers]
+		features = [p(features).unsqueeze(1) for p in self.projection_layers]
 		# projected_features.size() = [batch_size, label_size, hypothesis_length, hidden_dim]
-		projected_features = torch.cat(projected_features, dim=1)
+		features = torch.cat(features, dim=1)
+		features = self.dropout(features)
 
 		# Compute logits over the vocabulary
-		decoder_logits = self.bart.decoder.output_layer(projected_features).float()
-		
-		return decoder_logits
+		logits = self.bart.decoder.output_layer(features).float()
+
+		return logits
 
 	def calculate_class_probabilities(self, hypothesis_probabilities, target_lengths):
 		""" Calculates the class logits from the probabilties of the hypothesis tokens.
