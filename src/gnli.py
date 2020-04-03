@@ -54,9 +54,9 @@ class GNLI(Model):
 		initializer: InitializerApplicator = InitializerApplicator()) -> None:
 
 		super(GNLI, self).__init__(vocab)
-		self.bart 				= torch.hub.load('pytorch/fairseq', 'bart.large').model
-		self.projection_layers 	= nn.ModuleList([nn.Linear(self.hidden_dim, self.hidden_dim) for _ in range(self.label_size)])
-		self.dropout 			= nn.Dropout(p=dropout)
+		self.bart 			= torch.hub.load('pytorch/fairseq', 'bart.large').model
+		self.projections 	= nn.ModuleList([nn.Linear(self.hidden_dim, self.hidden_dim) for _ in range(self.label_size)])
+		self.dropout 		= nn.Dropout(p=dropout)
 
 		assert 0 <= disc_loss_weight <= 1
 		self.disc_loss_weight 	= disc_loss_weight
@@ -146,19 +146,20 @@ class GNLI(Model):
 
 	def bart_forward(self, src, src_lengths, prev_output_tokens):
 		# Get the features over the decoder
-		# features.size() = [batch_size, hypothesis_length, hidden_dim]
-		features, _ = self.bart(src_tokens=src,
-								src_lengths=src_lengths,
-								prev_output_tokens=prev_output_tokens,
-								features_only=True)
+		# features.size() = [batch_size, 1, hypothesis_length, hidden_dim]
+		features = self.bart(src_tokens=src,
+							 src_lengths=src_lengths,
+							 prev_output_tokens=prev_output_tokens,
+							 features_only=True)[0].unsqueeze(1)
 
 		# Pass features through a projection layer per label and combine along the 1st dimension
-		features = [p(features).unsqueeze(1) for p in self.projection_layers]
-		# projected_features.size() = [batch_size, label_size, hypothesis_length, hidden_dim]
-		features = torch.cat(features, dim=1)
+		features = self.dropout(features)
+		features = torch.tanh(features)
+		features = torch.cat([p(features) for p in self.projections], dim=1)
 		features = self.dropout(features)
 
-		# Compute logits over the vocabulary
+		# Compute logits over the vocabulary and cast as float (in case we're doing half-prec)
+		# logits.size() = [batch_size, label_size, hypothesis_length, vocab_size]
 		logits = self.bart.decoder.output_layer(features).float()
 
 		return logits
