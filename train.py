@@ -134,7 +134,7 @@ def construct_train_command(param_path, serialization_dir, overrides, include_pa
 	print(cmd)
 	return cmd
 
-def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = "", finetune_source=""):
+def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = "", finetune_source="", disc_loss_weight=None):
 	# Load config file if it isn't passed in
 	config = parse_overrides(overrides) if overrides else loads(evaluate_file(param_path))
 	setup_environment(config, finetune_source, serialization_dir, sha)
@@ -146,7 +146,10 @@ def train(param_path, serialization_dir, num_runs, overrides = "", include_packa
 		serialization_dir = join(head_serialization_dir, str(run_number))
 		
 		if finetune_source:
-			config['trainer']['pretrained_model'] = join(finetune_source, str(run_number), 'model.tar.gz')
+			assert isfile(join(finetune_source, 'model.tar.gz'))
+			assert disc_loss_weight != None
+			config['trainer']['pretrained_model'] = join(finetune_source, 'model.tar.gz')
+			config['trainer']['disc_loss_weight'] = disc_loss_weight
 
 		# Construct the `allennlp train` command and run it
 		overrides = "'" + dumps(config) + "'" # Wrap in quotes for bash

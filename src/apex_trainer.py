@@ -792,7 +792,7 @@ class ApexTrainer(TrainerBase):
 		validation_metric = params.pop("validation_metric", "-loss")
 		shuffle = params.pop_bool("shuffle", True)
 		accumulation_steps = params.pop("accumulation_steps", 0)
-		opt_level = params.pop("opt_level", "O1")
+		opt_level = params.pop("opt_level", "O2")
 		num_epochs = params.pop_int("num_epochs", 20)
 		cuda_device = parse_cuda_device(params.pop("cuda_device", -1))
 		grad_norm = params.pop_float("grad_norm", None)
@@ -802,11 +802,13 @@ class ApexTrainer(TrainerBase):
 		half_precision = params.pop("half_precision", False)
 		warmup_proportion = params.pop("warmup_proportion", None)
 		pretrained_model = params.pop("pretrained_model", None)
+		disc_loss_weight = params.pop("disc_loss_weight", None)
 
 		if pretrained_model:
 			logger.info('Loading pretrained model from %s', pretrained_model)
+			logger.info('Setting discrminative loss weight to %f', disc_loss_weight)
 			model = load_archive(pretrained_model).model
-			model.disc_loss_weight = 1 # TODO: fix this hack
+			model.disc_loss_weight = disc_loss_weight # TODO: fix this hack
 
 		if isinstance(cuda_device, list):
 			model_device = cuda_device[0]
