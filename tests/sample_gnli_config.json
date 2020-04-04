@@ -12,6 +12,7 @@
 	"model": {
 		"type": "gnli",
 		"disc_loss_weight": 1,
+		"dropout": 0.1
 	},
 	"iterator": {
 		"type": "basic",

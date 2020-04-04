@@ -55,8 +55,9 @@ class GNLI(Model):
 
 		super(GNLI, self).__init__(vocab)
 		self.bart 			= torch.hub.load('pytorch/fairseq', 'bart.large').model
-		self.projections 	= nn.ModuleList([nn.Linear(self.hidden_dim, self.hidden_dim) for _ in range(self.label_size)])
 		self.dropout 		= nn.Dropout(p=dropout)
+		self.label_vectors 	= torch.rand(1, self.label_size, 1, self.hidden_dim, requires_grad=True)
+		self.projection 	= nn.Linear(self.hidden_dim*2, self.hidden_dim)
 
 		assert 0 <= disc_loss_weight <= 1
 		self.disc_loss_weight 	= disc_loss_weight
@@ -145,24 +146,25 @@ class GNLI(Model):
 		return output_dict
 
 	def bart_forward(self, src, src_lengths, prev_output_tokens):
+		batch_size, hypothesis_length = prev_output_tokens.size()
+
 		# Get the features over the decoder
-		# features.size() = [batch_size, 1, hypothesis_length, hidden_dim]
+		# features.size() = [batch_size, 3, hypothesis_length, hidden_dim]
 		features = self.bart(src_tokens=src,
 							 src_lengths=src_lengths,
 							 prev_output_tokens=prev_output_tokens,
-							 features_only=True)[0].unsqueeze(1)
+							 features_only=True)[0].unsqueeze(1).repeat_interleave(self.label_size, dim=1)
 
-		# Pass features through a projection layer per label and combine along the 1st dimension
-		# features = self.dropout(features)
-		# features = torch.tanh(features)
-		features = torch.cat([p(features) for p in self.projections], dim=1)
-		features = self.dropout(features)
+		# Project features with label vectors
+		expanded_label_vectors 	= self.label_vectors.repeat(batch_size, 1, hypothesis_length, 1)
+		proj_input 				= torch.cat((features, expanded_label_vectors), dim=-1)
+		features 				= self.projection(self.dropout(proj_input))
 
-		# Compute logits over the vocabulary and cast as float (in case we're doing half-prec)
+		# Compute logits over the vocabulary and cast as float
 		# logits.size() = [batch_size, label_size, hypothesis_length, vocab_size]
-		logits = self.bart.decoder.output_layer(features).float()
+		logits = self.bart.decoder.output_layer(self.dropout(features))
 
-		return logits
+		return logits.float()
 
 	def calculate_class_probabilities(self, hypothesis_probabilities, target_lengths):
 		""" Calculates the class logits from the probabilties of the hypothesis tokens.

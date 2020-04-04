@@ -178,9 +178,11 @@ def main(serialization_dir, device):
 	# Compute average and stdev across runs
 	for dataset in metrics_dict:
 		for metric in metrics_dict[dataset]:
-			mean_metric = str(round(mean(metrics_dict[dataset][metric]), 1))
-			stdev_metric = str(round(stdev(metrics_dict[dataset][metric]), 1))
-			metrics_dict[dataset][metric] = mean_metric + ' +- ' +  stdev_metric
+			scores = metrics_dict[dataset][metric]
+			metrics_dict[dataset][metric] = str(round(mean(scores), 1))
+
+			if len(scores) > 1:
+				metrics_dict[dataset][metric] += ' +- ' +  str(round(stdev(scores), 1))
 
 	# Write aggregated generalization metrics
 	with open(join(serialization_dir, 'aggregated_generalization_metrics.json'), 'w') as writer:

@@ -21,8 +21,8 @@
 	},
 	"model": {
 		"type": "gnli",
-		// "disc_loss_weight": 0,
-		// "dropout": [0.1],
+		"disc_loss_weight": [0],
+		"dropout": [0.1]
 	},
 	"iterator": {
 		"type": "bucket",
@@ -32,8 +32,8 @@
 	"trainer": {
 		"type": "apextrainer",
 		"cuda_device": 0,
-		"num_epochs": [3],
-		"grad_clipping": [1],
+		"num_epochs": [4],
+		"grad_clipping": 1,
 		"half_precision": true,
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",

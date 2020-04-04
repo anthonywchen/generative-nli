@@ -31,7 +31,7 @@ class Tests(AllenNlpTestCase):
 			output_dict['loss'].backward()
 			del output_dict['metadata']
 			break
-		assert isclose(output_dict['loss'].item(), 3.1145, abs_tol=1e-3)
+		assert isclose(output_dict['loss'].item(), 2.5186, abs_tol=1e-3)
 
 	# def test_one_batch_encoder_input_label(self):
 	# 	self.set_seed()
