@@ -156,7 +156,7 @@ class GNLI(Model):
 							 features_only=True)[0].unsqueeze(1).repeat_interleave(self.label_size, dim=1)
 
 		# Project features with label vectors
-		expanded_label_vectors 	= self.label_vectors.repeat(batch_size, 1, hypothesis_length, 1)
+		expanded_label_vectors 	= self.label_vectors.repeat(batch_size, 1, hypothesis_length, 1).type_as(features)
 		proj_input 				= torch.cat((features, expanded_label_vectors), dim=-1)
 		features 				= self.projection(self.dropout(proj_input))
 

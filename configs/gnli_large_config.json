@@ -22,7 +22,7 @@
 	"model": {
 		"type": "gnli",
 		"disc_loss_weight": [0],
-		"dropout": [0.1]
+		"dropout": [0.1],
 	},
 	"iterator": {
 		"type": "bucket",
