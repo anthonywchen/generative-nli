@@ -21,8 +21,13 @@
 	},
 	"model": {
 		"type": "gnli",
+		"linear_layer": {
+			"input_dim": 2048,
+			"num_layers": 1,
+			"hidden_dims": 1024,
+			"activations": ["linear"],
+		},
 		"disc_loss_weight": [0],
-		"dropout": [0.1],
 	},
 	"iterator": {
 		"type": "bucket",
@@ -33,7 +38,7 @@
 		"type": "apextrainer",
 		"cuda_device": 0,
 		"num_epochs": [4],
-		"grad_clipping": 1,
+		// "grad_clipping": 1,
 		"half_precision": true,
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
@@ -41,7 +46,7 @@
 		"optimizer": {
 			"type": "adamw",
 			"lr": [1e-5],
-			"betas": [0.9, 0.999],
+			"betas": [0.9, 0.98],
 			"weight_decay": 0.01,
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],

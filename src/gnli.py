@@ -8,6 +8,7 @@ from typing import Dict
 
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
+from allennlp.modules.feedforward import FeedForward
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics.average import Average
 from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
@@ -37,7 +38,7 @@ class GNLI(Model):
 
 	@property
 	def vocab_size(self):
-		return self.bart.encoder.embed_tokens.num_embeddings
+		return self.bart.encoder.embed_tokens.num_embeddings - self.label_size
 
 	@property
 	def hidden_dim(self):
@@ -47,7 +48,27 @@ class GNLI(Model):
 	def get_metrics(self, reset: bool = False) -> Dict[str, float]:
 		return {metric_name: metric.get_metric(reset) for metric_name, metric in self.metrics.items()}
 
-	def __init__(self, 
+	def _extend_embeddings(self):
+		""" Extends the embeddings in the encoder and decoder by three for the 
+		class embeddings.
+		Code based on HuggingFace Transformer repository.
+		"""
+		old_embeddings = self.bart.encoder.embed_tokens
+		old_num_tokens, embedding_dim = old_embeddings.weight.size()
+
+		# Build new embeddings and copy the word embeddings from the previous weights
+		new_num_tokens = old_num_tokens + self.label_size
+		new_embeddings = torch.nn.Embedding(new_num_tokens, embedding_dim, padding_idx=old_embeddings.padding_idx)
+		new_embeddings.to(old_embeddings.weight.device)
+		new_embeddings.weight.data[:old_num_tokens, :] = old_embeddings.weight.data[:old_num_tokens, :]
+
+		# Set the encoder to use the new embeddings and tie the encoder and decoder embeddings.
+		self.bart.encoder.embed_tokens = new_embeddings
+		self.bart.decoder.embed_tokens = self.bart.encoder.embed_tokens
+		assert self.bart.decoder.embed_tokens == self.bart.encoder.embed_tokens
+
+	def __init__(self,
+		linear_layer: FeedForward,
 		disc_loss_weight: float = 0,
 		dropout: float = 0,
 		vocab: Vocabulary = Vocabulary(),
@@ -55,9 +76,10 @@ class GNLI(Model):
 
 		super(GNLI, self).__init__(vocab)
 		self.bart 			= torch.hub.load('pytorch/fairseq', 'bart.large').model
+		self._extend_embeddings()
+
+		self.linear_layer 	= linear_layer
 		self.dropout 		= nn.Dropout(p=dropout)
-		self.label_vectors 	= torch.rand(1, self.label_size, 1, self.hidden_dim, requires_grad=True)
-		self.projection 	= nn.Linear(self.hidden_dim*2, self.hidden_dim)
 
 		assert 0 <= disc_loss_weight <= 1
 		self.disc_loss_weight 	= disc_loss_weight
@@ -148,21 +170,33 @@ class GNLI(Model):
 	def bart_forward(self, src, src_lengths, prev_output_tokens):
 		batch_size, hypothesis_length = prev_output_tokens.size()
 
+		## Create labels tensor
+		labels = torch.Tensor(range(self.vocab_size, self.vocab_size+self.label_size)).type_as(src)
+		# labels.size() = [batch_size*3, hypothesis_length]
+		labels = labels.unsqueeze(-1).repeat(batch_size, hypothesis_length)
+
 		# Get the features over the decoder
 		# features.size() = [batch_size, 3, hypothesis_length, hidden_dim]
-		features = self.bart(src_tokens=src,
-							 src_lengths=src_lengths,
-							 prev_output_tokens=prev_output_tokens,
-							 features_only=True)[0].unsqueeze(1).repeat_interleave(self.label_size, dim=1)
+		features, _ = self.bart(src_tokens=src,
+								src_lengths=src_lengths,
+								prev_output_tokens=prev_output_tokens,
+								features_only=True)
+		features = features.repeat_interleave(self.label_size, dim=0)
+		
+		## Embed label embeddings linearly mix with decoder features
+		label_embeds = self.bart.encoder.embed_tokens(labels)
+		# features_and_labels.size() = [batch_size*3, hypothesis_length, hidden_dim*2]
+		features_and_labels = torch.cat((features, label_embeds), dim=-1)
+		features_and_labels = self.dropout(features_and_labels)
 
-		# Project features with label vectors
-		expanded_label_vectors 	= self.label_vectors.repeat(batch_size, 1, hypothesis_length, 1).type_as(features)
-		proj_input 				= torch.cat((features, expanded_label_vectors), dim=-1)
-		features 				= self.projection(self.dropout(proj_input))
+		# final_features.size() = [batch_size*3, hypothesis_length, hidden_dim]
+		final_features = self.linear_layer(features_and_labels)
 
 		# Compute logits over the vocabulary and cast as float
 		# logits.size() = [batch_size, label_size, hypothesis_length, vocab_size]
-		logits = self.bart.decoder.output_layer(self.dropout(features))
+		## Compute the logits over the vocabulary
+		logits = self.bart.decoder.output_layer(final_features)[:, :, :self.vocab_size].float()
+		logits = logits.resize(batch_size, self.label_size, hypothesis_length, self.vocab_size)
 
 		return logits.float()
 
