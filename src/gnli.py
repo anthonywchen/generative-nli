@@ -7,6 +7,7 @@ from torch import nn
 from typing import Dict
 
 from allennlp.data.vocabulary import Vocabulary
+from allennlp.models.archival import load_archive
 from allennlp.models.model import Model
 from allennlp.modules.feedforward import FeedForward
 from allennlp.nn import InitializerApplicator
@@ -68,18 +69,26 @@ class GNLI(Model):
 		assert self.bart.decoder.embed_tokens == self.bart.encoder.embed_tokens
 
 	def __init__(self,
-		linear_layer: FeedForward,
+		pretrained_archive_path: str = None,
+		linear_layer: FeedForward = None,
 		disc_loss_weight: float = 0,
 		dropout: float = 0,
 		vocab: Vocabulary = Vocabulary(),
 		initializer: InitializerApplicator = InitializerApplicator()) -> None:
 
 		super(GNLI, self).__init__(vocab)
-		self.bart 			= torch.hub.load('pytorch/fairseq', 'bart.large').model
-		self._extend_embeddings()
 
-		self.linear_layer 	= linear_layer
-		self.dropout 		= nn.Dropout(p=dropout)
+		if pretrained_archive_path:
+			logger.info('Loading pretrained model: %s', pretrained_archive_path)
+			archive = load_archive(pretrained_archive_path)
+			self.bart = archive.model.bart
+			self.linear_layer = archive.model.linear_layer
+		else:
+			self.bart = torch.hub.load('pytorch/fairseq', 'bart.large').model
+			self.linear_layer = linear_layer
+			self._extend_embeddings()
+		
+		self.dropout = nn.Dropout(p=dropout)
 
 		assert 0 <= disc_loss_weight <= 1
 		self.disc_loss_weight 	= disc_loss_weight

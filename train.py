@@ -96,7 +96,7 @@ def aggregate_training_run_metrics(head_serialization_dir, num_runs):
 	with open(output_file, 'w') as writer:
 		writer.write(dumps(metrics_dict, indent=4, sort_keys=True))
 
-def setup_environment(config, finetune_source, serialization_dir, sha):
+def setup_environment(config, serialization_dir, sha):
 	# Get the commit hash if it hasn't been passed in
 	sha = sha if sha else get_commit_hash()
 	
@@ -115,11 +115,6 @@ def setup_environment(config, finetune_source, serialization_dir, sha):
 	with open(join(serialization_dir, 'hash.txt'), 'w') as f:
 		f.write(sha)
 
-	# Write out the current commit hash to file
-	if finetune_source:
-		with open(join(serialization_dir, 'finetune_source.txt'), 'w') as f:
-			f.write(finetune_source + '\n')
-
 def construct_train_command(param_path, serialization_dir, overrides, include_package):
 	""" 
 	Takes the arguments and constructs a shell command by stitching the arguments
@@ -131,13 +126,12 @@ def construct_train_command(param_path, serialization_dir, overrides, include_pa
 	for p in include_package:
 		cmd += ' --include-package ' + p
 
-	print(cmd)
 	return cmd
 
-def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = "", finetune_source="", disc_loss_weight=None):
+def train(param_path, serialization_dir, num_runs, overrides = "", include_package = [], sha = ""):
 	# Load config file if it isn't passed in
 	config = parse_overrides(overrides) if overrides else loads(evaluate_file(param_path))
-	setup_environment(config, finetune_source, serialization_dir, sha)
+	setup_environment(config, serialization_dir, sha)
 
 	# Iterate through the runs, modifying the seeds per run
 	head_serialization_dir = serialization_dir
@@ -145,12 +139,6 @@ def train(param_path, serialization_dir, num_runs, overrides = "", include_packa
 		# Write outputs to `head_serialization_dir/run_number`
 		serialization_dir = join(head_serialization_dir, str(run_number))
 		
-		if finetune_source:
-			assert isfile(join(finetune_source, 'model.tar.gz'))
-			assert disc_loss_weight != None
-			config['trainer']['pretrained_model'] = join(finetune_source, 'model.tar.gz')
-			config['trainer']['disc_loss_weight'] = disc_loss_weight
-
 		# Construct the `allennlp train` command and run it
 		overrides = "'" + dumps(config) + "'" # Wrap in quotes for bash
 		cmd = construct_train_command(param_path, serialization_dir, overrides, include_package)

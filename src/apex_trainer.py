@@ -29,7 +29,6 @@ from allennlp.data.instance import Instance
 from allennlp.data.iterators.data_iterator import DataIterator, TensorDict
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
-from allennlp.models.archival import load_archive
 from allennlp.nn import util as nn_util
 from allennlp.training.checkpointer import Checkpointer
 from allennlp.training.learning_rate_schedulers import LearningRateScheduler
@@ -801,14 +800,6 @@ class ApexTrainer(TrainerBase):
 		momentum_scheduler_params = params.pop("momentum_scheduler", None)
 		half_precision = params.pop("half_precision", False)
 		warmup_proportion = params.pop("warmup_proportion", None)
-		pretrained_model = params.pop("pretrained_model", None)
-		disc_loss_weight = params.pop("disc_loss_weight", None)
-
-		if pretrained_model:
-			logger.info('Loading pretrained model from %s', pretrained_model)
-			logger.info('Setting discrminative loss weight to %f', disc_loss_weight)
-			model = load_archive(pretrained_model).model
-			model.disc_loss_weight = disc_loss_weight # TODO: fix this hack
 
 		if isinstance(cuda_device, list):
 			model_device = cuda_device[0]

@@ -21,14 +21,14 @@
 	},
 	"model": {
 		"type": "gnli",
+		"pretrained_archive_path": "out/gnli/1/label_embed/0_disc_loss_weight_4_num_epochs_1e-05_lr/0/model.tar.gz",
 		"linear_layer": {
 			"input_dim": 2048,
 			"num_layers": 1,
 			"hidden_dims": 1024,
 			"activations": ["linear"],
 		},
-		"disc_loss_weight": [0],
-		"dropout": [0.1],
+		"disc_loss_weight": [1],
 	},
 	"iterator": {
 		"type": "bucket",
@@ -39,15 +39,14 @@
 		"type": "apextrainer",
 		"cuda_device": 3,
 		"num_epochs": [4],
-		// "grad_clipping": 1,
 		"half_precision": true,
 		"num_serialized_models_to_keep": 0,
 		"validation_metric": "+accuracy",
 		"warmup_proportion": 0.06,
 		"optimizer": {
 			"type": "adamw",
-			"lr": [2e-5],
-			"betas": [0.9, 0.999],
+			"lr": [1e-5],
+			"betas": [0.9, 0.98],
 			"weight_decay": 0.01,
 			"parameter_groups": [
 			  [["bias", "LayerNorm.bias", "LayerNorm.weight"], {"weight_decay": 0.0}],

@@ -103,23 +103,15 @@ def main():
 	parser.add_argument('param_path', type=str, help='path to parameter file describing the model to be trained')
 	parser.add_argument('-s', '--serialization_dir', type=str, help='path to serialization_dir with the different runs')
 	parser.add_argument('-n', '--num_runs', type=int, default=3, help='# of different runs')
-	parser.add_argument('-f', '--finetune_source', type=str, default="", help='path to directory that we can finetune')
-	parser.add_argument('-d', '--disc_loss_weight', type=float, default=None, help='discriminative loss weight to finetune with')
 	args = parser.parse_args()
 
 	sha = get_commit_hash()
 	config = loads(evaluate_file(args.param_path))
 	config_iterator = ConfigIterator(config)
 
-	if args.finetune_source:
-		assert args.disc_loss_weight != None
-
 	for c, params in config_iterator:
-		# Name this config's serialization directory and check that it doesn't exist
-
+		# Name this config's serialization directory
 		serialization_dir = '_'.join([str(v) + '_' + k.split('.')[-1] for k, v in params.items()])
-		if args.finetune_source:
-			serialization_dir = 'finetune_' + serialization_dir + '_' + str(args.disc_loss_weight) + '_disc_loss_weight'
 		serialization_dir = join(args.serialization_dir, serialization_dir)
 
 		train(param_path=args.param_path,
@@ -127,9 +119,7 @@ def main():
 			  num_runs=args.num_runs,
 			  overrides=dumps(c),
 			  include_package=['src'],
-			  sha=str(sha),
-			  finetune_source=args.finetune_source,
-			  disc_loss_weight=args.disc_loss_weight)
+			  sha=str(sha))
 
 if __name__ == '__main__':
 	main()
