@@ -170,35 +170,30 @@ class GNLI(Model):
 	def bart_forward(self, src, src_lengths, prev_output_tokens):
 		batch_size, hypothesis_length = prev_output_tokens.size()
 
-		## Create labels tensor
+		## Create labels features
 		labels = torch.Tensor(range(self.vocab_size, self.vocab_size+self.label_size)).type_as(src)
-		# labels.size() = [batch_size*3, hypothesis_length]
-		labels = labels.unsqueeze(-1).repeat(batch_size, hypothesis_length)
+		
+		# label_embeds.size() = [3, hidden_dim]
+		label_embeds = self.bart.encoder.embed_tokens(labels)
+		label_embeds = self.dropout(label_embeds)
+		label_embeds = label_embeds.unsqueeze(1).repeat(batch_size, hypothesis_length, 1)
 
-		# Get the features over the decoder
-		# features.size() = [batch_size, 3, hypothesis_length, hidden_dim]
-		features, _ = self.bart(src_tokens=src,
-								src_lengths=src_lengths,
-								prev_output_tokens=prev_output_tokens,
-								features_only=True)
+		## Get decoder features
+		# features.size() = [batch_size, hypothesis_length, hidden_dim]
+		features = self.bart(src, src_lengths, prev_output_tokens, features_only=True)[0]
+		features = self.dropout(features)
 		features = features.repeat_interleave(self.label_size, dim=0)
 		
-		## Embed label embeddings linearly mix with decoder features
-		label_embeds = self.bart.encoder.embed_tokens(labels)
-		# features_and_labels.size() = [batch_size*3, hypothesis_length, hidden_dim*2]
-		features_and_labels = torch.cat((features, label_embeds), dim=-1)
-		features_and_labels = self.dropout(features_and_labels)
-
+		## Mix with label featuers with decoder features and project back to hidden dim
 		# final_features.size() = [batch_size*3, hypothesis_length, hidden_dim]
-		final_features = self.linear_layer(features_and_labels)
+		final_features = self.linear_layer(torch.cat((features, label_embeds), dim=-1))
 
 		# Compute logits over the vocabulary and cast as float
 		# logits.size() = [batch_size, label_size, hypothesis_length, vocab_size]
-		## Compute the logits over the vocabulary
 		logits = self.bart.decoder.output_layer(final_features)[:, :, :self.vocab_size].float()
 		logits = logits.resize(batch_size, self.label_size, hypothesis_length, self.vocab_size)
 
-		return logits.float()
+		return logits
 
 	def calculate_class_probabilities(self, hypothesis_probabilities, target_lengths):
 		""" Calculates the class logits from the probabilties of the hypothesis tokens.
